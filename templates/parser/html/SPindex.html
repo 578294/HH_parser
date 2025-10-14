@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Парсер вакансий в Южном Парке</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'parser/css/SPstyle.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>ПАРСЕР ВАКАНСИЙ</h1>
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button onclick="window.location.href='{% url 'index' %}'" style="background-color: #6c757d; padding: 8px 15px;">
+                <i class="fas fa-arrow-left"></i> Вернуться к обычному стилю
+            </button>
+        </div>
+        
+        <div id="errorMessage" class="status-message error"></div>
+        <div id="successMessage" class="status-message success"></div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('parse')">
+                <span class="tab-icon icon-parse"></span> ПАРСИНГ
+            </div>
+            <div class="tab" onclick="switchTab('filter')">
+                <span class="tab-icon icon-filter"></span> ФИЛЬТРЫ
+            </div>
+            <div class="tab" onclick="switchTab('generate')">
+                <span class="tab-icon icon-letter"></span> ПИСЬМА
+            </div>
+            <div class="tab" onclick="switchTab('export')">
+                <span class="tab-icon icon-export"></span> ЭКСПОРТ
+            </div>
+        </div>
+
+        <div id="parse" class="tab-content active">
+            <h2>ПАРСИНГ ВАКАНСИЙ</h2>
+            <form id="parseForm">
+                <label for="sourceUrl">ССЫЛКА НА ВАКАНСИИ:</label>
+                <input type="url" id="sourceUrl" name="sourceUrl" required placeholder="https://hh.ru/search/vacancy?text=python">
+                
+                <label for="pagesCount">СКОЛЬКО СТРАНИЦ:</label>
+                <input type="number" id="pagesCount" name="pagesCount" min="1" max="20" value="1">
+                
+                <button type="button" onclick="startParsing()">НАЧАТЬ ПАРСИНГ</button>
+            </form>
+
+            <div class="loading" id="loadingIndicator">
+                <div class="loading-spinner"></div>
+                <p>ПАРСИМ ВАКАНСИИ...</p>
+            </div>
+
+            <div id="results">
+                <h3>НАЙДЕНО ВАКАНСИЙ:</h3>
+                <div id="vacancyResults"></div>
+            </div>
+        </div>
+
+        <div id="filter" class="tab-content">
+            <h2>ФИЛЬТРАЦИЯ ВАКАНСИЙ</h2>
+            <form id="filterForm">
+                <label for="keywords">КЛЮЧЕВЫЕ СЛОВА:</label>
+                <input type="text" id="keywords" name="keywords" placeholder="PYTHON, LINUX, Tegridy Farms...">
+                
+                <label for="minSalary">МИНИМАЛЬНАЯ ЗАРПЛАТА:</label>
+                <input type="number" id="minSalary" name="minSalary" placeholder="100000">
+                
+                <label for="experience">ОПЫТ РАБОТЫ:</label>
+                <select id="experience" name="experience">
+                    <option value="">ЛЮБОЙ</option>
+                    <option value="no">БЕЗ ОПЫТА (КАК У БАТТЕРСА)</option>
+                    <option value="1-3">1-3 ГОДА (КАК КЕНИ ЧЕРЕЗ 3 ГОДА В 4 КЛАССЕ)</option>
+                    <option value="3-6">3-6 ЛЕТ (КАК СТЭН ПОСЛЕ ШЕСТИ ЛЕТ ПЬЯНСТВА)</option>
+                    <option value="6+">БОЛЕЕ 6 ЛЕТ (КАК МИСТЕР ГАРРИСОН В ДЕПРЕССИИ)</option>
+                </select>
+                
+                <label for="employment">ТИП ЗАНЯТОСТИ:</label>
+                <select id="employment" name="employment">
+                    <option value="">ЛЮБОЙ</option>
+                    <option value="full">ПОЛНАЯ (КАК ЗАВИСИМОСТЬ ПОЛОТЕНЧИКА)</option>
+                    <option value="part">ЧАСТИЧНАЯ (КАК МОЗГИ БАТТЕРСА)</option>
+                    <option value="remote">УДАЛЕННАЯ (КАК ТВИТТЕР КАЙЛА)</option>
+                    <option value="project">ПРОЕКТНАЯ (КАК ВСЕ ПРОЕКТЫ ТОКЕНА)</option>
+                </select>
+                
+                <button type="button" class="secondary-btn" onclick="applyFilters()">ПРИМЕНИТЬ ФИЛЬТРЫ</button>
+            </form>
+            
+            <div id="filterResults">
+                <!-- Здесь будут отображаться отфильтрованные вакансии -->
+            </div>
+        </div>
+
+        <div id="generate" class="tab-content">
+            <h2>ГЕНЕРАТОР СОПРОВОДИТЕЛЬНЫХ ПИСЕМ</h2>
+            <form id="letterForm">
+                <label for="selectedVacancy">ВЫБЕРИТЕ ВАКАНСИЮ:</label>
+                <select id="selectedVacancy" name="selectedVacancy" required>
+                    <option value="">-- ВЫБЕРИТЕ ВАКАНСИЮ --</option>
+                    <!-- Опции будут заполнены динамически -->
+                </select>
+                
+                <label for="letterTemplate">ШАБЛОН ПИСЬМА:</label>
+                <select id="letterTemplate" name="letterTemplate">
+                    <option value="standard">СТАНДАРТНЫЙ</option>
+                    <option value="support">ИНЖЕНЕР СОПРОВОЖДЕНИЯ (СТИЛЬ КАРТМАНА)</option>
+                    <option value="devops">DEVOPS (СТИЛЬ КЕНИ)</option>
+                    <option value="backend">BACKEND-РАЗРАБОТЧИК (СТИЛЬ КАЙЛА)</option>
+                    <option value="frontend">FRONTEND-РАЗРАБОТЧИК (СТИЛЬ БАТТЕРСА)</option>
+                    <option value="manager">МЕНЕДЖЕР (СТИЛЬ МИСТЕРА ГОВНЯЖКИ)</option>
+                    <option value="custom">ПОЛЬЗОВАТЕЛЬСКИЙ (СТИЛЬ РЭНДОМНОГО ЖИТЕЛЯ)</option>
+                </select>
+                
+                <label for="customText">ДОПОЛНИТЕЛЬНЫЙ ТЕКСТ:</label>
+                <textarea id="customText" name="customText" rows="4" placeholder="НАПИШИ ЧТО-НИБУДЬ ОСКОРБИТЕЛЬНОЕ, КАК КАРТМАН..."></textarea>
+                
+                <button type="button" class="secondary-btn" onclick="generateLetter()">СГЕНЕРИРОВАТЬ ПИСЬМО</button>
+            </form>
+            
+            <div id="letterResult" style="margin-top: 20px; display: none;">
+                <h3>РЕЗУЛЬТАТ:</h3>
+                <div id="generatedLetter"></div>
+                <button type="button" style="margin-top: 10px;" onclick="saveLetter()">СОХРАНИТЬ ПИСЬМО</button>
+            </div>
+        </div>
+
+        <div id="export" class="tab-content">
+            <h2>ЭКСПОРТ ДАННЫХ</h2>
+            <form id="exportForm">
+                <label for="exportType">ФОРМАТ ЭКСПОРТА:</label>
+                <select id="exportType" name="exportType">
+                    <option value="docx">DOCX (WORD)</option>
+                    <option value="pdf">PDF</option>
+                    <option value="txt">TXT (КАК ПИСЬМО ОТ КАРТМАНА)</option>
+                    <option value="csv">CSV (ЛЮБИМЫЙ ФОРМАТ КАЙЛА)</option>
+                    <option value="xlsx">XLSX (ЧТОБЫ ПОКАЗАТЬСЯ БОГАТЫМ)</option>
+                </select>
+                
+                <label for="exportContent">ЧТО ЭКСПОРТИРОВАТЬ:</label>
+                <select id="exportContent" name="exportContent">
+                    <option value="vacancies">ТОЛЬКО ВАКАНСИИ</option>
+                    <option value="letters">ТОЛЬКО ПИСЬМА (И ОСКОРБЛЕНИЯ)</option>
+                    <option value="all">ВАКАНСИИ И ПИСЬМА</option>
+                </select>
+                
+                <button type="button" onclick="exportData()">ЭКСПОРТИРОВАТЬ И ПОХВАСТАТЬСЯ</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'parser/js/SPmain.js' %}"></script>
+</body>
+</html>
