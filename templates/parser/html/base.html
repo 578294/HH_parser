@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HH Parser - Парсер вакансий{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'parser/css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-menu">
+                <a href="{% url 'index' %}" class="nav-link">Главная</a>
+                <a href="{% url 'parser' %}" class="nav-link">Парсер</a>
+                <a href="{% url 'vacancy_list' %}" class="nav-link">Вакансии</a>
+            </div>
+            <div class="nav-stats">
+                <span class="stat-badge">Вакансий: {{ total_vacancies|default:0 }}</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <p>&copy; 2024 HH Parser. Парсер вакансий HeadHunter</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'parser/js/main.js' %}"></script>
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>

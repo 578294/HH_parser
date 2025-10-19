@@ -1,0 +1,94 @@
+{% extends 'parser/html/base.html' %}
+
+{% block content %}
+<div class="vacancies-container">
+    <div class="vacancies-header">
+        <h1>📋 Список вакансий</h1>
+        
+        <div class="vacancies-controls">
+            <form method="get" class="search-form">
+                <div class="search-group">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Поиск по вакансиям..." class="search-input">
+                    <button type="submit" class="btn btn-primary">🔍 Найти</button>
+                </div>
+            </form>
+            
+            <div class="vacancies-stats">
+                <span class="stat-badge">Найдено: {{ vacancies_count }}</span>
+                <a href="{% url 'parser' %}" class="btn btn-outline">Добавить вакансии</a>
+            </div>
+        </div>
+    </div>
+
+    {% if vacancies %}
+        <div class="vacancies-list">
+            {% for vacancy in vacancies %}
+            <div class="vacancy-item">
+                <div class="vacancy-header">
+                    <h3 class="vacancy-title">
+                        <a href="{{ vacancy.link }}" target="_blank" class="vacancy-link">
+                            {{ vacancy.title }}
+                        </a>
+                    </h3>
+                    <span class="vacancy-salary">{{ vacancy.salary }}</span>
+                </div>
+                
+                <div class="vacancy-company">{{ vacancy.company }}</div>
+                
+                <div class="vacancy-meta">
+                    <span class="meta-item">
+                        📊 Опыт: {{ vacancy.get_experience_display }}
+                    </span>
+                    <span class="meta-item">
+                        {{ vacancy.get_employment_display }}
+                    </span>
+                    <span class="meta-item">
+                        {{ vacancy.created_at|date:"d.m.Y H:i" }}
+                    </span>
+                </div>
+                
+                {% if vacancy.skills %}
+                <div class="vacancy-skills">
+                    <strong>Навыки:</strong>
+                    <div class="skills-list">
+                        {{ vacancy.skills }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if vacancy.description %}
+                <div class="vacancy-description">
+                    <strong>Описание:</strong>
+                    <p>{{ vacancy.description|truncatewords:50 }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="vacancy-actions">
+                    <a href="{{ vacancy.link }}" target="_blank" class="btn btn-outline btn-small">
+                        Открыть на HH.ru
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if vacancies_count > 20 %}
+        <div class="pagination">
+            <p>Показано {{ vacancies_count }} вакансий</p>
+        </div>
+        {% endif %}
+        
+    {% else %}
+        <div class="no-vacancies">
+            <div class="empty-state">
+                <h3>Вакансии не найдены</h3>
+                <p>Попробуйте изменить поисковый запрос или запустите парсер для сбора вакансий</p>
+                <a href="{% url 'parser' %}" class="btn btn-primary">
+                    🔍 Запустить парсер
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

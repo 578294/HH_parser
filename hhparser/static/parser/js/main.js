@@ -1,145 +1,190 @@
-// Tab switching functionality
-function switchTab(tabId) {
-    // Hide all tab contents
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Remove active class from all tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Show selected tab content
-    document.getElementById(tabId).classList.add('active');
-    
-    // Make selected tab active
-    event.currentTarget.classList.add('active');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('HH Parser frontend initialized');
+
+    initializeApp();
+});
+
+function initializeApp() {
+    initializeTooltips();
+
+    initializeEventHandlers();
+
+    loadStatistics();
 }
 
-// Show/hide style menu
-function showStyleMenu() {
-    const menu = document.getElementById('styleMenu');
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+function initializeTooltips() {
+    const tooltips = document.querySelectorAll('[data-tooltip]');
+    tooltips.forEach(element => {
+        element.addEventListener('mouseenter', showTooltip);
+        element.addEventListener('mouseleave', hideTooltip);
+    });
 }
 
-// Change page style
-function changeStyle(style) {
-    if (style === 'SP') {
-        window.location.href = 'http://127.0.0.1:8000/SPindex/';
-    } else if (style === 'HP') {
-        window.location.href = 'http://127.0.0.1:8000/HPindex/';
-    } else if (style === 'WH') {
-        window.location.href = 'http://127.0.0.1:8000/WHindex/';
+function showTooltip(event) {
+    const tooltipText = event.target.getAttribute('data-tooltip');
+    if (!tooltipText) return;
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    tooltip.textContent = tooltipText;
+    document.body.appendChild(tooltip);
+
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = rect.left + 'px';
+    tooltip.style.top = (rect.top - tooltip.offsetHeight - 5) + 'px';
+}
+
+function hideTooltip() {
+    const tooltip = document.querySelector('.tooltip');
+    if (tooltip) {
+        tooltip.remove();
     }
-    document.getElementById('styleMenu').style.display = 'none';
 }
 
-// Show status messages
-function showMessage(elementId, message) {
-    const element = document.getElementById(elementId);
-    element.textContent = message;
-    element.style.display = 'block';
+function initializeEventHandlers() {
+    // Обработчики для динамического контента
+    const searchInputs = document.querySelectorAll('.search-input');
+    searchInputs.forEach(input => {
+        input.addEventListener('input', debounce(handleSearch, 300));
+    });
+
+    initializeModals();
+}
+
+function handleSearch(event) {
+    const searchValue = event.target.value.toLowerCase();
+    const vacancyItems = document.querySelectorAll('.vacancy-item');
+
+    vacancyItems.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        if (text.includes(searchValue)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function initializeModals() {
+}
+
+function loadStatistics() {
+    // Загрузка дополнительной статистики
+    fetch('/api/statistics/')  // Если будет API endpoint
+        .then(response => response.json())
+        .then(data => {
+            updateStatistics(data);
+        })
+        .catch(error => {
+            console.log('Не удалось загрузить статистику:', error);
+        });
+}
+
+function updateStatistics(data) {
+    const statElements = document.querySelectorAll('[data-stat]');
+    statElements.forEach(element => {
+        const statKey = element.getAttribute('data-stat');
+        if (data[statKey]) {
+            element.textContent = data[statKey];
+        }
+    });
+}
+
+function validateForm(form) {
+    const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+    let isValid = true;
+
+    inputs.forEach(input => {
+        if (!input.value.trim()) {
+            input.style.borderColor = 'var(--danger-color)';
+            isValid = false;
+        } else {
+            input.style.borderColor = 'var(--border-color)';
+        }
+    });
+
+    return isValid;
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-message">${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
     setTimeout(() => {
-        element.style.display = 'none';
+        if (notification.parentElement) {
+            notification.remove();
+        }
     }, 5000);
 }
 
-// Parsing functionality
-async function startParsing() {
-    const sourceUrl = document.getElementById('sourceUrl').value;
-    const pagesCount = document.getElementById('pagesCount').value;
-    
-    if (!sourceUrl) {
-        showMessage('errorMessage', 'Пожалуйста, укажите URL для парсинга');
-        return;
-    }
-    
-    document.getElementById('loadingIndicator').style.display = 'block';
-    document.getElementById('vacancyResults').innerHTML = '';
-
-    try {
-        // Here would be a real backend request
-        // This is a mock for demonstration
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Example results
-        const mockResults = [
-            {
-                title: "Python разработчик",
-                salary: "от 150 000 руб.",
-                company: "ООО ТехноЛаб",
-                description: "Ищем опытного Python разработчика для работы над высоконагруженным проектом."
-            },
-            {
-                title: "Django backend developer",
-                salary: "$3000 - $5000",
-                company: "International Tech Corp",
-                description: "Remote position for Django expert with 3+ years experience."
-            }
-        ];
-        
-        displayVacancies(mockResults);
-        showMessage('successMessage', 'Парсинг завершен успешно! Найдено ' + mockResults.length + ' вакансий');
-    } catch (error) {
-        showMessage('errorMessage', 'Ошибка при парсинге: ' + error.message);
-        console.error('Ошибка:', error);
-    } finally {
-        document.getElementById('loadingIndicator').style.display = 'none';
-    }
+const notificationStyles = `
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary-color);
+    z-index: 10000;
+    max-width: 400px;
 }
 
-// Display vacancies
-function displayVacancies(vacancies) {
-    const resultsContainer = document.getElementById('vacancyResults');
-    resultsContainer.innerHTML = '';
-    
-    vacancies.forEach(vacancy => {
-        const card = document.createElement('div');
-        card.className = 'vacancy-card';
-        card.innerHTML = `
-            <div class="vacancy-title">${vacancy.title}</div>
-            <div class="vacancy-salary">${vacancy.salary || 'Зарплата не указана'}</div>
-            <div class="vacancy-company">${vacancy.company}</div>
-            <div>${vacancy.description}</div>
-        `;
-        resultsContainer.appendChild(card);
-    });
+.notification-success {
+    border-left-color: var(--success-color);
 }
 
-// Apply filters
-function applyFilters() {
-    // Here would be filtering implementation
-    showMessage('successMessage', 'Фильтры применены');
+.notification-error {
+    border-left-color: var(--danger-color);
 }
 
-// Generate cover letter
-function generateLetter() {
-    // Here would be letter generation via DeepSeek API
-    const letterContainer = document.getElementById('generatedLetter');
-    letterContainer.innerHTML = `
-        <p>Уважаемые коллеги,</p>
-        <p>Я заинтересовался вакансией на позицию Python разработчика и хотел бы подать свою кандидатуру.</p>
-        <p>Мой опыт работы с Django составляет 4 года, и я уверен, что могу внести значительный вклад в ваш проект.</p>
-        <p>С уважением,<br>[Ваше имя]</p>
-    `;
-    document.getElementById('letterResult').style.display = 'block';
-    showMessage('successMessage', 'Письмо успешно сгенерировано');
+.notification-warning {
+    border-left-color: var(--warning-color);
 }
 
-// Save letter
-function saveLetter() {
-    // Here would be letter saving implementation
-    showMessage('successMessage', 'Письмо сохранено');
+.notification-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
 }
 
-// Export data
-function exportData() {
-    // Here would be data export implementation
-    showMessage('successMessage', 'Данные успешно экспортированы');
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-light);
 }
+`;
 
-// Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
-    // Any initialization code can go here
-});
+const styleSheet = document.createElement('style');
+styleSheet.textContent = notificationStyles;
+document.head.appendChild(styleSheet);
+
+window.HHParser = {
+    showNotification,
+    validateForm,
+    debounce
+};

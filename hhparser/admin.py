@@ -1,5 +1,5 @@
 from django.contrib import admin
-from models import Vacancy, CoverLetter
+from hhparser.models import Vacancy#, CoverLetter
 
 @admin.register(Vacancy)
 class VacancyAdmin(admin.ModelAdmin):
@@ -8,8 +8,8 @@ class VacancyAdmin(admin.ModelAdmin):
     search_fields = ['title', 'company', 'description']
     readonly_fields = ['created_at']
 
-@admin.register(CoverLetter)
-class CoverLetterAdmin(admin.ModelAdmin):
-    list_display = ['vacancy', 'template_type', 'created_at']
-    list_filter = ['template_type', 'created_at']
-    readonly_fields = ['created_at']
+# @admin.register(CoverLetter)
+# class CoverLetterAdmin(admin.ModelAdmin):
+#     list_display = ['title', 'created_at']
+#     search_fields = ['title', 'created_at']
+#     readonly_fields = ['created_at']

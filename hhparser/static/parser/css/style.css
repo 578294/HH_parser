@@ -1,150 +1,290 @@
-/* Base styles */
-body {
-    font-family: Arial, sans-serif;
+/* Базовые стили */
+* {
     margin: 0;
-    padding: 20px;
-    background-color: #f4f4f4;
-}
-
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background: white;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-}
-
-h1 {
-    color: #333;
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-h2 {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 5px;
-}
-
-/* Form elements */
-label {
-    display: block;
-    margin: 10px 0 5px;
-    font-weight: bold;
-}
-
-input, select, textarea, button, .action-btn {
-    width: 100%;
-    padding: 10px;
-    margin: 5px 0 15px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+    padding: 0;
     box-sizing: border-box;
 }
 
-button, .action-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2c3e50;
+    --success-color: #27ae60;
+    --warning-color: #f39c12;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --text-color: #333;
+    --text-light: #7f8c8d;
+    --border-color: #bdc3c7;
+    --shadow: 0 2px 10px rgba(0,0,0,0.1);
+    --border-radius: 8px;
 }
 
-button:hover, .action-btn:hover {
-    background-color: #0056b3;
-}
-
-.secondary-btn {
-    background-color: #84cc16;
-}
-
-.secondary-btn:hover {
-    background-color: #6ba012;
-}
-
-/* Tabs */
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-.tabs {
-    display: flex;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #ddd;
-}
-
-.tab {
-    padding: 10px 20px;
-    cursor: pointer;
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
     background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-bottom: none;
-    border-radius: 5px 5px 0 0;
-    margin-right: 5px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-.tab.active {
-    background-color: white;
-    border-bottom: 1px solid white;
-    margin-bottom: -1px;
+/* Навигация */
+.navbar {
+    background: linear-gradient(135deg, var(--secondary-color), var(--dark-color));
+    color: white;
+    padding: 1rem 0;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+}
+
+.nav-logo {
+    font-size: 1.5rem;
     font-weight: bold;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-/* Status messages */
-.status-message {
-    margin: 15px 0;
-    padding: 10px;
-    border-radius: 5px;
-    display: none;
+.nav-menu {
+    display: flex;
+    gap: 2rem;
 }
 
-.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+.nav-link {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    transition: background-color 0.3s;
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+.nav-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.stat-badge {
+    background: var(--primary-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Основной контент */
+.main-content {
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    width: 100%;
+}
+
+/* Герой секция */
+.hero-section {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.hero-title {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-light);
+    margin-bottom: 3rem;
+}
+
+.hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.stat-card {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+/* Кнопки */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+    text-align: center;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #1a252f;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.btn-outline:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+.btn-small {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+/* Формы */
+.parser-form-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    margin: 2rem 0;
+}
+
+.parser-form {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.form-hint {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+/* Результаты */
+.results-container {
+    margin-top: 2rem;
+}
+
+.loading, .success, .error {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.loading {
+    border-left: 4px solid var(--warning-color);
 }
 
 .success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    border-left: 4px solid var(--success-color);
 }
 
-/* Results section */
-#results {
-    margin-top: 20px;
+.error {
+    border-left: 4px solid var(--danger-color);
 }
 
-#vacancyResults {
-    background: #f8f9fa;
-    padding: 10px;
-    border-radius: 5px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-/* Loading indicator */
-.loading {
-    display: none;
-    text-align: center;
-    margin: 10px 0;
-}
-
-.loading-spinner {
+.spinner {
     border: 4px solid #f3f3f3;
-    border-top: 4px solid #3498db;
+    border-top: 4px solid var(--primary-color);
     border-radius: 50%;
-    width: 30px;
-    height: 30px;
+    width: 50px;
+    height: 50px;
     animation: spin 1s linear infinite;
-    margin: 0 auto;
+    margin: 0 auto 1rem;
 }
 
 @keyframes spin {
@@ -152,89 +292,227 @@ button:hover, .action-btn:hover {
     100% { transform: rotate(360deg); }
 }
 
-/* Vacancy cards */
-.vacancy-card {
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 15px;
-    margin-bottom: 15px;
+.success-stats {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin: 1.5rem 0;
+}
+
+.success-stats .stat {
+    background: var(--light-color);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+}
+
+.success-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+/* Список вакансий */
+.vacancies-header {
+    margin-bottom: 2rem;
+}
+
+.vacancies-controls {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    gap: 2rem;
+    margin: 1.5rem 0;
+}
+
+.search-form {
+    flex: 1;
+}
+
+.search-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.vacancies-stats {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.vacancies-list {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.vacancy-item {
     background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary-color);
+    transition: transform 0.3s;
+}
+
+.vacancy-item:hover {
+    transform: translateY(-2px);
+}
+
+.vacancy-header {
+    display: flex;
+    justify-content: between;
+    align-items: start;
+    margin-bottom: 1rem;
 }
 
 .vacancy-title {
-    color: #007bff;
-    font-weight: bold;
-    font-size: 1.2em;
-    margin-bottom: 5px;
+    flex: 1;
+    margin: 0;
+}
+
+.vacancy-link {
+    color: var(--text-color);
+    text-decoration: none;
+}
+
+.vacancy-link:hover {
+    color: var(--primary-color);
 }
 
 .vacancy-salary {
-    color: #84cc16;
-    font-weight: bold;
-    margin-bottom: 5px;
+    background: var(--success-color);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 
 .vacancy-company {
-    font-style: italic;
-    margin-bottom: 10px;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    font-weight: 500;
 }
 
-/* Style menu */
-.style-menu-container {
+.vacancy-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.vacancy-skills {
+    margin-bottom: 1rem;
+}
+
+.skills-list {
+    margin-top: 0.5rem;
+    padding: 1rem;
+    background: var(--light-color);
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+}
+
+.vacancy-description {
+    margin-bottom: 1.5rem;
+}
+
+.vacancy-description p {
+    margin-top: 0.5rem;
+    line-height: 1.5;
+    color: var(--text-light);
+}
+
+.vacancy-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Пустые состояния */
+.empty-state {
     text-align: center;
-    margin-bottom: 20px;
+    padding: 4rem 2rem;
+    color: var(--text-light);
 }
 
-.style-menu-button {
-    background-color: #6c757d;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 5px;
+.empty-state h3 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+/* Футер */
+.footer {
+    background: var(--dark-color);
     color: white;
-    cursor: pointer;
+    padding: 2rem 0;
+    margin-top: auto;
 }
 
-.style-menu {
-    display: none;
-    margin-top: 10px;
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    text-align: center;
 }
 
-.style-option {
-    margin: 5px;
-    padding: 8px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+/* Адаптивность */
+@media (max-width: 768px) {
+    .nav-container {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .nav-menu {
+        gap: 1rem;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .parser-form-container {
+        grid-template-columns: 1fr;
+    }
+
+    .vacancies-controls {
+        flex-direction: column;
+    }
+
+    .vacancy-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .vacancy-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .success-actions {
+        flex-direction: column;
+    }
+
+    .main-content {
+        padding: 1rem;
+    }
 }
 
-.sp {
-    background-color: #ffd90f;
-    color: black;
-}
-
-.hp {
-    background-color: #740001;
-    color: #ffd900;
-}
-
-.wh {
-    background-color: #2a471a;
-    color: #d3bc8e;
-}
-
-/* Letter result */
-.letter-result {
-    margin-top: 20px;
-    display: none;
-}
-
-.generated-letter {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 10px;
-}
-
-.save-btn {
-    margin-top: 10px;
-}
+.text-center { text-align: center; }
+.mb-1 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 2rem; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
