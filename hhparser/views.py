@@ -1,30 +1,14 @@
-#from django.shortcuts import render
-
-# def index(request):
-#     if request.method == 'POST':
-#         url = request.POST.get('sourceUrl')
-#         print(url)
-#     return render(request, 'parser/html/index.html')
-#
-# def SPindex(request):
-#     return render(request, 'parser/html/SPindex.html')
-#
-# def HPindex(request):
-#     return render(request, 'parser/html/HPindex.html')
-#
-# def WHindex(request):
-#     return render(request, 'parser/html/WHindex.html')
-
-
 from django.shortcuts import render
 from django.views import View
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.db.models import Q
-from .models import Vacancy
+from .models import Vacancy, CoverLetter
 from DjangoProject_HH_parser.Services.hh_parser import HHApiParser
+from .services.content_generators import StyleContentGenerator, LetterTemplateGenerator
 import json
+
 
 class IndexView(View):
     def get(self, request):
@@ -83,6 +67,7 @@ class ParserView(View):
 class VacancyListView(View):
     def get(self, request):
         search_query = request.GET.get('search', '')
+        style = request.GET.get('style', 'default')
 
         if search_query:
             vacancies = Vacancy.objects.filter(
@@ -93,10 +78,63 @@ class VacancyListView(View):
         else:
             vacancies = Vacancy.objects.all().order_by('-created_at')
 
+        # Подготавливаем данные в выбранном стиле
+        styled_vacancies = []
+        for vacancy in vacancies:
+            if style == 'HP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.hp_title,
+                    'company': vacancy.hp_company,
+                    'salary': vacancy.hp_salary,
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'HP'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'HP'),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+            elif style == 'SP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.sp_title,
+                    'company': vacancy.sp_company,
+                    'salary': vacancy.sp_salary,
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'SP'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'SP'),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+            elif style == 'WH':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.wh_title,
+                    'company': vacancy.wh_company,
+                    'salary': vacancy.wh_salary,
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'WH'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'WH'),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+            else:
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.title,
+                    'company': vacancy.company,
+                    'salary': vacancy.salary,
+                    'experience': vacancy.get_experience_display(),
+                    'employment': vacancy.get_employment_display(),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+
         return render(request, 'parser/html/vacancies.html', {
-            'vacancies': vacancies,
+            'vacancies': styled_vacancies,
             'search_query': search_query,
-            'vacancies_count': vacancies.count()
+            'vacancies_count': len(styled_vacancies),
+            'current_style': style
         })
 
 
@@ -112,8 +150,129 @@ class StyleView(View):
         template_name = templates.get(style, 'parser/html/index.html')
         vacancies = Vacancy.objects.all().order_by('-created_at')[:10]
 
+        # Подготавливаем данные в выбранном стиле
+        styled_vacancies = []
+        for vacancy in vacancies:
+            if style == 'HP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.hp_title,
+                    'company': vacancy.hp_company,
+                    'salary': vacancy.hp_salary,
+                })
+            elif style == 'SP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.sp_title,
+                    'company': vacancy.sp_company,
+                    'salary': vacancy.sp_salary,
+                })
+            elif style == 'WH':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.wh_title,
+                    'company': vacancy.wh_company,
+                    'salary': vacancy.wh_salary,
+                })
+            else:
+                styled_vacancies.append(vacancy)
+
         return render(request, template_name, {
-            'vacancies': vacancies,
+            'vacancies': styled_vacancies,
             'current_style': style,
             'total_vacancies': Vacancy.objects.count()
+        })
+
+
+class GenerateLetterView(View):
+    """Генерация сопроводительного письма"""
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            vacancy_id = data.get('vacancy_id')
+            template_type = data.get('template_type', 'standard')
+            style = data.get('style', 'default')
+            custom_text = data.get('custom_text', '')
+
+            vacancy = Vacancy.objects.get(id=vacancy_id)
+            letter_content = LetterTemplateGenerator.generate_letter(
+                vacancy, template_type, style, custom_text
+            )
+
+            # Сохраняем письмо в базу
+            cover_letter = CoverLetter.objects.create(
+                title=f"Письмо для {vacancy.title}",
+                content=letter_content,
+                template_type=template_type,
+                style=style,
+                vacancy=vacancy
+            )
+
+            return JsonResponse({
+                'success': True,
+                'letter_content': letter_content,
+                'letter_id': cover_letter.id
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            })
+
+
+class GetVacanciesView(View):
+    """API для получения вакансий в определенном стиле"""
+
+    def get(self, request):
+        style = request.GET.get('style', 'default')
+        vacancies = Vacancy.objects.all().order_by('-created_at')[:50]
+
+        styled_vacancies = []
+        for vacancy in vacancies:
+            if style == 'HP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.hp_title,
+                    'company': vacancy.hp_company,
+                    'salary': vacancy.hp_salary,
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'HP'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'HP'),
+                })
+            elif style == 'SP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.sp_title,
+                    'company': vacancy.sp_company,
+                    'salary': vacancy.sp_salary,
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'SP'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'SP'),
+                })
+            elif style == 'WH':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.wh_title,
+                    'company': vacancy.wh_company,
+                    'salary': vacancy.wh_salary,
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'WH'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'WH'),
+                })
+            else:
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.title,
+                    'company': vacancy.company,
+                    'salary': vacancy.salary,
+                    'experience': vacancy.get_experience_display(),
+                    'employment': vacancy.get_employment_display(),
+                })
+
+        return JsonResponse({
+            'vacancies': styled_vacancies,
+            'style': style
         })

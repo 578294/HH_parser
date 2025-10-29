@@ -10,22 +10,20 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DjangoProject_HH_parser.settings')
 django.setup()
 
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 YaBrowser/25.6.0.0 Safari/537.36"
-
 
 class HHApiParser:
     def __init__(self):
         self.base_url = "https://api.hh.ru/vacancies"
         self.session = requests.Session()
-        self.session.headers.update({'user-agent': USER_AGENT, 'HH-User-Agent': 'HH Parser App'})
+        self.session.headers.update({
+            'user-agent': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+            'HH-User-Agent': 'HH Parser App'
+        })
 
     def parse_vacancies(self, search_query="Python", pages=1):
         all_vacancies = []
 
-        if pages > 10:
-            pages = 10
-
-        for page in range(pages):
+        for page in range(min(pages, 10)):  # Ограничение 10 страниц
             print(f"Парсинг страницы {page + 1} из {pages}")
 
             params = {
@@ -42,7 +40,6 @@ class HHApiParser:
                 data = response.json()
 
                 if 'items' not in data or not data['items']:
-                    print(f"На странице {page + 1} нет вакансий")
                     break
 
                 for vacancy_data in data['items']:
@@ -57,20 +54,17 @@ class HHApiParser:
                 if page >= data['pages'] - 1:
                     break
 
-                time.sleep(0.5)  # Уважаем API HH.ru
+                time.sleep(0.5)
 
-            except requests.exceptions.RequestException as e:
-                print(f"Ошибка сети при запросе: {e}")
-                break
             except Exception as e:
-                print(f"Общая ошибка: {e}")
+                print(f"Ошибка: {e}")
                 continue
 
         print(f"Всего собрано вакансий: {len(all_vacancies)}")
         return all_vacancies
 
     def parse_vacancy_item(self, vacancy_data):
-        """Парсинг отдельной вакансии"""
+        """Парсинг вакансии с генерацией стилизованных данных"""
         experience_map = {
             'noExperience': 'no',
             'between1And3': '1-3',
@@ -87,18 +81,42 @@ class HHApiParser:
 
         experience = experience_map.get(vacancy_data.get('experience', {}).get('id'), 'no')
         employment = employment_map.get(vacancy_data.get('employment', {}).get('id'), 'full')
-
         description = self.get_full_description(vacancy_data.get('url'))
 
+        # Создаем временный объект для генерации стилизованных данных
+        temp_vacancy = Vacancy(
+            title=vacancy_data.get('name', 'Без названия'),
+            company=vacancy_data.get('employer', {}).get('name', 'Не указано'),
+            salary=self.parse_salary(vacancy_data.get('salary')),
+            description=description,
+            experience=experience,
+            employment=employment,
+            skills=', '.join([skill['name'] for skill in vacancy_data.get('key_skills', [])]),
+            link=vacancy_data.get('alternate_url', ''),
+        )
+
+        # Генерируем стилизованные данные
         vacancy_info = {
-            'title': vacancy_data.get('name', 'Без названия'),
-            'company': vacancy_data.get('employer', {}).get('name', 'Не указано'),
-            'salary': self.parse_salary(vacancy_data.get('salary')),
-            'description': description,
-            'experience': experience,
-            'employment': employment,
-            'skills': ', '.join([skill['name'] for skill in vacancy_data.get('key_skills', [])]),
-            'link': vacancy_data.get('alternate_url', ''),
+            'title': temp_vacancy.title,
+            'company': temp_vacancy.company,
+            'salary': temp_vacancy.salary,
+            'description': temp_vacancy.description,
+            'experience': temp_vacancy.experience,
+            'employment': temp_vacancy.employment,
+            'skills': temp_vacancy.skills,
+            'link': temp_vacancy.link,
+            # Стилизованные данные
+            'hp_title': temp_vacancy.generate_hp_title(),
+            'hp_company': temp_vacancy.company.upper() + " (ОТДЕЛ МАГИИ)",
+            'hp_salary': temp_vacancy.generate_hp_salary(),
+
+            'sp_title': temp_vacancy.generate_sp_title(),
+            'sp_company': temp_vacancy.company.upper() + " (СЕРЬЕЗНО!)",
+            'sp_salary': temp_vacancy.generate_sp_salary(),
+
+            'wh_title': temp_vacancy.generate_wh_title(),
+            'wh_company': temp_vacancy.company.upper() + " ИМПЕРИУМ",
+            'wh_salary': temp_vacancy.generate_wh_salary(),
         }
 
         return vacancy_info
@@ -112,14 +130,11 @@ class HHApiParser:
             response = self.session.get(vacancy_url, timeout=10)
             response.raise_for_status()
             data = response.json()
-
             description = data.get('description', '')
             import re
             clean_description = re.sub('<[^<]+?>', '', description)
-            return clean_description[:1500]  # Ограничиваем длину
-
-        except Exception as e:
-            print(f"Не удалось получить полное описание: {e}")
+            return clean_description[:1500]
+        except:
             return ""
 
     def parse_salary(self, salary_data):
@@ -154,13 +169,8 @@ class HHApiParser:
                 )
                 if created:
                     saved_count += 1
-                    print(f"Сохранена вакансия: {vacancy_info['title'][:50]}...")
             except Exception as e:
-                print(f"Ошибка сохранения вакансии: {e}")
+                print(f"Ошибка сохранения: {e}")
                 continue
 
-        print(f"Всего сохранено новых вакансий: {saved_count}")
         return saved_count
-
-
-

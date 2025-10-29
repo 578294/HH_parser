@@ -19,10 +19,17 @@ from django.contrib import admin
 from django.urls import path
 from hhparser.views import IndexView, ParserView, VacancyListView, StyleView
 
+from django.contrib import admin
+from django.urls import path
+from hhparser.views import (IndexView, ParserView, VacancyListView, StyleView,
+                           GenerateLetterView, GetVacanciesView)
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', IndexView.as_view(), name='index'),
     path('parser/', ParserView.as_view(), name='parser'),
     path('vacancies/', VacancyListView.as_view(), name='vacancy_list'),
     path('style/<str:style>/', StyleView.as_view(), name='style'),
+    path('api/generate-letter/', GenerateLetterView.as_view(), name='generate_letter'),
+    path('api/vacancies/', GetVacanciesView.as_view(), name='api_vacancies'),
 ]
