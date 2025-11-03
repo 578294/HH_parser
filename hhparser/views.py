@@ -1,12 +1,13 @@
+# hhparser/views.py
 from django.shortcuts import render
 from django.views import View
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.db.models import Q
-from .models import Vacancy, CoverLetter
+from django.utils import timezone  # ДОБАВЬТЕ ЭТОТ ИМПОРТ
+from .models import Vacancy
 from DjangoProject_HH_parser.Services.hh_parser import HHApiParser
-from .services.content_generators import StyleContentGenerator, LetterTemplateGenerator
 import json
 
 
@@ -43,10 +44,7 @@ class ParserView(View):
             vacancies_data = parser.parse_vacancies(search_query, pages)
 
             if not vacancies_data:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Не удалось получить данные с HH.ru'
-                })
+                return JsonResponse({'success': False, 'error': 'Не удалось получить данные'})
 
             saved_count = parser.save_to_database(vacancies_data)
 
@@ -54,20 +52,16 @@ class ParserView(View):
                 'success': True,
                 'found': len(vacancies_data),
                 'saved': saved_count,
-                'message': f'Успешно! Найдено {len(vacancies_data)} вакансий, сохранено {saved_count}'
+                'message': f'Найдено {len(vacancies_data)} вакансий, сохранено {saved_count}'
             })
 
         except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': f'Ошибка при парсинге: {str(e)}'
-            })
+            return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'})
 
 
 class VacancyListView(View):
     def get(self, request):
         search_query = request.GET.get('search', '')
-        style = request.GET.get('style', 'default')
 
         if search_query:
             vacancies = Vacancy.objects.filter(
@@ -78,115 +72,81 @@ class VacancyListView(View):
         else:
             vacancies = Vacancy.objects.all().order_by('-created_at')
 
-        # Подготавливаем данные в выбранном стиле
-        styled_vacancies = []
-        for vacancy in vacancies:
-            if style == 'HP':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.hp_title,
-                    'company': vacancy.hp_company,
-                    'salary': vacancy.hp_salary,
-                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'HP'),
-                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'HP'),
-                    'description': vacancy.description,
-                    'link': vacancy.link,
-                    'created_at': vacancy.created_at
-                })
-            elif style == 'SP':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.sp_title,
-                    'company': vacancy.sp_company,
-                    'salary': vacancy.sp_salary,
-                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'SP'),
-                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'SP'),
-                    'description': vacancy.description,
-                    'link': vacancy.link,
-                    'created_at': vacancy.created_at
-                })
-            elif style == 'WH':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.wh_title,
-                    'company': vacancy.wh_company,
-                    'salary': vacancy.wh_salary,
-                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'WH'),
-                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'WH'),
-                    'description': vacancy.description,
-                    'link': vacancy.link,
-                    'created_at': vacancy.created_at
-                })
-            else:
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.title,
-                    'company': vacancy.company,
-                    'salary': vacancy.salary,
-                    'experience': vacancy.get_experience_display(),
-                    'employment': vacancy.get_employment_display(),
-                    'description': vacancy.description,
-                    'link': vacancy.link,
-                    'created_at': vacancy.created_at
-                })
-
         return render(request, 'parser/html/vacancies.html', {
-            'vacancies': styled_vacancies,
+            'vacancies': vacancies,
             'search_query': search_query,
-            'vacancies_count': len(styled_vacancies),
-            'current_style': style
+            'vacancies_count': vacancies.count(),
+            'current_filters': request.GET.dict()
         })
 
 
-class StyleView(View):
-    def get(self, request, style):
-        """Переключение между стилями интерфейса"""
-        templates = {
-            'HP': 'parser/html/HPindex.html',
-            'SP': 'parser/html/SPindex.html',
-            'WH': 'parser/html/WHindex.html'
-        }
+class FilterVacanciesView(View):
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
-        template_name = templates.get(style, 'parser/html/index.html')
-        vacancies = Vacancy.objects.all().order_by('-created_at')[:10]
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            filters = data.get('filters', {})
 
-        # Подготавливаем данные в выбранном стиле
-        styled_vacancies = []
-        for vacancy in vacancies:
-            if style == 'HP':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.hp_title,
-                    'company': vacancy.hp_company,
-                    'salary': vacancy.hp_salary,
-                })
-            elif style == 'SP':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.sp_title,
-                    'company': vacancy.sp_company,
-                    'salary': vacancy.sp_salary,
-                })
-            elif style == 'WH':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.wh_title,
-                    'company': vacancy.wh_company,
-                    'salary': vacancy.wh_salary,
-                })
-            else:
-                styled_vacancies.append(vacancy)
+            vacancies = Vacancy.objects.all().order_by('-created_at')
+            filtered_vacancies = []
 
-        return render(request, template_name, {
-            'vacancies': styled_vacancies,
-            'current_style': style,
-            'total_vacancies': Vacancy.objects.count()
-        })
+            for vacancy in vacancies:
+                if self.matches_filters(vacancy, filters):
+                    filtered_vacancies.append({
+                        'id': vacancy.id,
+                        'title': vacancy.title,
+                        'company': vacancy.company,
+                        'salary': vacancy.salary,
+                        'experience': vacancy.get_experience_display(),
+                        'employment': vacancy.get_employment_display(),
+                        'description': vacancy.description,
+                        'link': vacancy.link,
+                        'created_at': vacancy.created_at
+                    })
+
+            return JsonResponse({
+                'success': True,
+                'vacancies': filtered_vacancies,
+                'count': len(filtered_vacancies)
+            })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    def matches_filters(self, vacancy, filters):
+        """Простая проверка фильтров"""
+        if filters.get('keywords'):
+            keywords = filters['keywords'].lower()
+            if (keywords not in vacancy.title.lower() and
+                    keywords not in vacancy.company.lower() and
+                    keywords not in vacancy.description.lower()):
+                return False
+
+        if filters.get('min_salary'):
+            try:
+                min_salary = int(filters['min_salary'])
+                if "Не указана" not in vacancy.salary:
+                    salary_num = ''.join(filter(str.isdigit, vacancy.salary))
+                    if salary_num and int(salary_num) < min_salary:
+                        return False
+            except:
+                pass
+
+        if filters.get('experience') and filters['experience'] != '':
+            if vacancy.experience != filters['experience']:
+                return False
+
+        if filters.get('employment') and filters['employment'] != '':
+            if vacancy.employment != filters['employment']:
+                return False
+
+        return True
 
 
 class GenerateLetterView(View):
-    """Генерация сопроводительного письма"""
-
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
@@ -196,83 +156,49 @@ class GenerateLetterView(View):
             data = json.loads(request.body)
             vacancy_id = data.get('vacancy_id')
             template_type = data.get('template_type', 'standard')
-            style = data.get('style', 'default')
             custom_text = data.get('custom_text', '')
 
             vacancy = Vacancy.objects.get(id=vacancy_id)
-            letter_content = LetterTemplateGenerator.generate_letter(
-                vacancy, template_type, style, custom_text
-            )
 
-            # Сохраняем письмо в базу
-            cover_letter = CoverLetter.objects.create(
-                title=f"Письмо для {vacancy.title}",
-                content=letter_content,
-                template_type=template_type,
-                style=style,
-                vacancy=vacancy
-            )
+            # Простой генератор писем
+            letter_content = f"Уважаемые представители {vacancy.company}!\n\nЯ пишу о вакансии '{vacancy.title}'.\n\nС уважением!"
 
             return JsonResponse({
                 'success': True,
-                'letter_content': letter_content,
-                'letter_id': cover_letter.id
+                'letter_content': letter_content
             })
 
         except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            })
+            return JsonResponse({'success': False, 'error': str(e)})
 
 
 class GetVacanciesView(View):
-    """API для получения вакансий в определенном стиле"""
-
     def get(self, request):
-        style = request.GET.get('style', 'default')
         vacancies = Vacancy.objects.all().order_by('-created_at')[:50]
 
-        styled_vacancies = []
+        vacancy_list = []
         for vacancy in vacancies:
-            if style == 'HP':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.hp_title,
-                    'company': vacancy.hp_company,
-                    'salary': vacancy.hp_salary,
-                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'HP'),
-                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'HP'),
-                })
-            elif style == 'SP':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.sp_title,
-                    'company': vacancy.sp_company,
-                    'salary': vacancy.sp_salary,
-                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'SP'),
-                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'SP'),
-                })
-            elif style == 'WH':
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.wh_title,
-                    'company': vacancy.wh_company,
-                    'salary': vacancy.wh_salary,
-                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'WH'),
-                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'WH'),
-                })
-            else:
-                styled_vacancies.append({
-                    'id': vacancy.id,
-                    'title': vacancy.title,
-                    'company': vacancy.company,
-                    'salary': vacancy.salary,
-                    'experience': vacancy.get_experience_display(),
-                    'employment': vacancy.get_employment_display(),
-                })
+            vacancy_list.append({
+                'id': vacancy.id,
+                'title': vacancy.title,
+                'company': vacancy.company,
+                'salary': vacancy.salary,
+                'experience': vacancy.get_experience_display(),
+                'employment': vacancy.get_employment_display(),
+                'link': vacancy.link,
+            })
+
+        return JsonResponse({'vacancies': vacancy_list})
+
+
+class StatisticsView(View):
+    def get(self, request):
+        total_vacancies = Vacancy.objects.count()
+        recent_count = Vacancy.objects.filter(
+            created_at__gte=timezone.now() - timezone.timedelta(days=7)
+        ).count()
 
         return JsonResponse({
-            'vacancies': styled_vacancies,
-            'style': style
+            'total_vacancies': total_vacancies,
+            'recent_vacancies': recent_count
         })

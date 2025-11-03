@@ -1,3 +1,4 @@
+<!-- templates/parser/html/base.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -6,14 +7,16 @@
     <title>{% block title %}HH Parser - Парсер вакансий{% endblock %}</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'parser/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'parser/css/filters.css' %}">
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-menu">
-                <a href="{% url 'index' %}" class="nav-link">Главная</a>
-                <a href="{% url 'parser' %}" class="nav-link">Парсер</a>
-                <a href="{% url 'vacancy_list' %}" class="nav-link">Вакансии</a>
+                <a href="{% url 'index' %}" class="nav-link">🏠 Главная</a>
+                <a href="{% url 'parser' %}" class="nav-link">🔍 Парсер</a>
+                <a href="{% url 'vacancy_list' %}" class="nav-link">📋 Вакансии</a>
             </div>
             <div class="nav-stats">
                 <span class="stat-badge">Вакансий: {{ total_vacancies|default:0 }}</span>
@@ -22,6 +25,9 @@
     </nav>
 
     <main class="main-content">
+        {% block filters %}
+        {% endblock %}
+
         {% block content %}
         {% endblock %}
     </main>
@@ -32,7 +38,11 @@
         </div>
     </footer>
 
+    <!-- Основные JavaScript файлы -->
     <script src="{% static 'parser/js/main.js' %}"></script>
+    <script src="{% static 'parser/js/filters.js' %}"></script>
+
+    <!-- Блок для дополнительных скриптов -->
     {% block scripts %}
     {% endblock %}
 </body>

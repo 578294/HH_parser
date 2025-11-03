@@ -1,0 +1,167 @@
+<!-- templates/parser/html/includes/filters_section.html -->
+<div class="filters-section">
+    <div class="filters-header">
+        <h3>🔍 Фильтрация вакансий</h3>
+        <button type="button" class="toggle-filters-btn" onclick="toggleFilters()">
+            📋 Показать/скрыть фильтры
+        </button>
+    </div>
+
+    <div class="filters-form-container" id="filtersFormContainer" style="display: none;">
+        <form id="filterForm" class="filter-form">
+            {% csrf_token %}
+
+            <!-- Ключевые слова -->
+            <div class="filter-group">
+                <label for="keywords">Ключевые слова:</label>
+                <input type="text" id="keywords" name="keywords"
+                       placeholder="Python, JavaScript, разработчик..."
+                       value="{{ current_filters.keywords|default:'' }}">
+            </div>
+
+            <!-- Минимальная зарплата -->
+            <div class="filter-group">
+                <label for="minSalary">Минимальная зарплата:</label>
+                <input type="number" id="minSalary" name="min_salary"
+                       placeholder="Минимальная зарплата"
+                       value="{{ current_filters.min_salary|default:'' }}">
+            </div>
+
+            <!-- Опыт работы -->
+            <div class="filter-group">
+                <label for="experience">Опыт работы:</label>
+                <select id="experience" name="experience">
+                    <option value="">Любой</option>
+                    <option value="no" {% if current_filters.experience == 'no' %}selected{% endif %}>Без опыта</option>
+                    <option value="1-3" {% if current_filters.experience == '1-3' %}selected{% endif %}>1-3 года</option>
+                    <option value="3-6" {% if current_filters.experience == '3-6' %}selected{% endif %}>3-6 лет</option>
+                    <option value="6+" {% if current_filters.experience == '6+' %}selected{% endif %}>Более 6 лет</option>
+                </select>
+            </div>
+
+            <!-- Тип занятости -->
+            <div class="filter-group">
+                <label for="employment">Тип занятости:</label>
+                <select id="employment" name="employment">
+                    <option value="">Любой</option>
+                    <option value="full" {% if current_filters.employment == 'full' %}selected{% endif %}>Полная занятость</option>
+                    <option value="part" {% if current_filters.employment == 'part' %}selected{% endif %}>Частичная занятость</option>
+                    <option value="remote" {% if current_filters.employment == 'remote' %}selected{% endif %}>Удаленная работа</option>
+                    <option value="project" {% if current_filters.employment == 'project' %}selected{% endif %}>Проектная работа</option>
+                </select>
+            </div>
+
+            <!-- Кнопки действий -->
+            <div class="filter-actions">
+                <button type="button" onclick="applyFilters()" class="btn btn-primary">
+                    🔍 Применить фильтры
+                </button>
+
+                <button type="button" onclick="resetFilters()" class="btn btn-secondary">
+                    🔄 Сбросить фильтры
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Блок для отображения результатов фильтрации -->
+    <div id="filterResults" class="filter-results" style="display: none;">
+        <div class="results-header">
+            <h4 id="filterResultsTitle"></h4>
+            <button type="button" onclick="hideFilterResults()" class="btn btn-small">
+                ✕ Скрыть
+            </button>
+        </div>
+        <div id="filterResultsContent" class="results-content"></div>
+    </div>
+</div>
+
+<style>
+.filters-section {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.filters-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.toggle-filters-btn {
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+}
+
+.filter-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+}
+
+.filter-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-start;
+    margin-top: 1rem;
+}
+
+.filter-results {
+    background: var(--success-light);
+    border: 1px solid var(--success-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.results-header h4 {
+    margin: 0;
+    color: var(--success-color);
+}
+
+.results-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+</style>

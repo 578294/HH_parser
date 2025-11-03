@@ -1,5 +1,64 @@
+# hhparser/services/content_generators.py
+
 class StyleContentGenerator:
-    """Базовый класс для генерации стилизованного контента"""
+    """Генератор стилизованного контента"""
+
+    @staticmethod
+    def style_vacancies(vacancies, style):
+        """Преобразование вакансий в выбранный стиль"""
+        styled_vacancies = []
+
+        for vacancy in vacancies:
+            if style == 'HP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.get_hp_title(),
+                    'company': vacancy.get_hp_company(),
+                    'salary': vacancy.get_hp_salary(),
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'HP'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'HP'),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+            elif style == 'SP':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.get_sp_title(),
+                    'company': vacancy.get_sp_company(),
+                    'salary': vacancy.get_sp_salary(),
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'SP'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'SP'),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+            elif style == 'WH':
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.get_wh_title(),
+                    'company': vacancy.get_wh_company(),
+                    'salary': vacancy.get_wh_salary(),
+                    'experience': StyleContentGenerator.generate_experience_text(vacancy.experience, 'WH'),
+                    'employment': StyleContentGenerator.generate_employment_text(vacancy.employment, 'WH'),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+            else:
+                styled_vacancies.append({
+                    'id': vacancy.id,
+                    'title': vacancy.title,
+                    'company': vacancy.company,
+                    'salary': vacancy.salary,
+                    'experience': vacancy.get_experience_display(),
+                    'employment': vacancy.get_employment_display(),
+                    'description': vacancy.description,
+                    'link': vacancy.link,
+                    'created_at': vacancy.created_at
+                })
+
+        return styled_vacancies
 
     @staticmethod
     def generate_experience_text(experience_code, style):
@@ -62,97 +121,3 @@ class StyleContentGenerator:
             }
         }
         return employments.get(style, employments['default']).get(employment_code, 'Неизвестно')
-
-
-class LetterTemplateGenerator:
-    """Генератор шаблонов писем для разных стилей"""
-
-    @staticmethod
-    def generate_letter(vacancy, template_type, style, custom_text=""):
-        """Генерация письма в выбранном стиле"""
-
-        if style == 'HP':
-            return LetterTemplateGenerator._generate_hp_letter(vacancy, template_type, custom_text)
-        elif style == 'SP':
-            return LetterTemplateGenerator._generate_sp_letter(vacancy, template_type, custom_text)
-        elif style == 'WH':
-            return LetterTemplateGenerator._generate_wh_letter(vacancy, template_type, custom_text)
-        else:
-            return LetterTemplateGenerator._generate_default_letter(vacancy, template_type, custom_text)
-
-    @staticmethod
-    def _generate_hp_letter(vacancy, template_type, custom_text):
-        base_letter = f"УВАЖАЕМЫЕ ВОЛШЕБНИКИ ИЗ {vacancy.company.upper()}!\n\n"
-        base_letter += f"Я ПИШУ ПО ПОВОДУ ВАКАНСИИ '{vacancy.hp_title}'.\n\n"
-
-        if template_type == 'support':
-            base_letter += "КАК ВЕРНАЯ ПОМОЩНИЦА ГЕРМИОНЫ, Я ВНИМАТЕЛЬНА К ДЕТАЛЯМ...\n\n"
-        elif template_type == 'devops':
-            base_letter += "МОИ ЗАКЛИНАНИЯ DOCKER И KUBERNETES НЕУЛОЖИМЫ...\n\n"
-        else:
-            base_letter += "МОЙ МАГИЧЕСКИЙ ОПЫТ И НАВЫКИ СООТВЕТСТВУЮТ ВАШИМ ТРЕБОВАНИЯМ...\n\n"
-
-        base_letter += "С УВАЖЕНИЕМ,\nВАШ ПОСЛУШНИК ИЗ ХОГВАРТСА"
-
-        if custom_text:
-            base_letter += f"\n\nP.S. {custom_text.upper()}"
-
-        return base_letter
-
-    @staticmethod
-    def _generate_sp_letter(vacancy, template_type, custom_text):
-        base_letter = f"ЭЙ, РЕБЯТА ИЗ {vacancy.company.upper()}!\n\n"
-        base_letter += f"Я ХОЧУ РАБОТАТЬ У ВАС НА РОЛИ '{vacancy.sp_title}'.\n\n"
-
-        if template_type == 'support':
-            base_letter += "Я КАК КАРТМАН - СДЕЛАЮ ВСЕ, ЧТОБЫ ВЫ БЫЛИ ДОВОЛЬНЫ (ЕСЛИ КУПИТЕ CHEESY POOFS)...\n\n"
-        elif template_type == 'devops':
-            base_letter += "МОЙ ОПЫТ - КАК У КЕНИ, ТОЛЬКО БЕЗ СМЕРТЕЙ...\n\n"
-        else:
-            base_letter += "Я СЕРЬЕЗНО ХОРОШ В ЭТОМ, СПРОСИТЕ У МАМЫ...\n\n"
-
-        base_letter += "С УВАЖЕНИЕМ,\nВАШ БУДУЩИЙ СОТРУДНИК"
-
-        if custom_text:
-            base_letter += f"\n\nP.S. {custom_text.upper()}"
-
-        return base_letter
-
-    @staticmethod
-    def _generate_wh_letter(vacancy, template_type, custom_text):
-        base_letter = f"ВЕЛИКОМУ {vacancy.company.upper()}!\n\n"
-        base_letter += f"Я, СМИРЕННЫЙ СЛУГА ИМПЕРИУМА, ПИШУ О ВАКАНСИИ '{vacancy.wh_title}'.\n\n"
-
-        if template_type == 'support':
-            base_letter += "КАК ВЕРНЫЙ АДЕПТУС МЕХАНИКУС, Я ОБСЛУЖИВАЮ МАШИННЫЙ ДУХ...\n\n"
-        elif template_type == 'devops':
-            base_letter += "МОИ РИТУАЛЫ DOCKER И KUBERNETES УСМИРЯТ ЛЮБОГО МАШИННОГО ДУХА...\n\n"
-        else:
-            base_letter += "МОЙ ОПЫТ СЛУЖЕНИЯ СООТВЕТСТВУЕТ ВАШИМ ТРЕБОВАНИЯМ...\n\n"
-
-        base_letter += "С ВЕРНОСТЬЮ ИМПЕРАТОРУ,\nВАШ ПОСЛУШНИК"
-
-        if custom_text:
-            base_letter += f"\n\nP.S. {custom_text.upper()}"
-
-        return base_letter
-
-    @staticmethod
-    def _generate_default_letter(vacancy, template_type, custom_text):
-        # Стандартный шаблон письма
-        base_letter = f"Уважаемые представители {vacancy.company}!\n\n"
-        base_letter += f"Я пишу по поводу вакансии '{vacancy.title}'.\n\n"
-
-        if template_type == 'support':
-            base_letter += "Мой опыт работы в технической поддержке...\n\n"
-        elif template_type == 'devops':
-            base_letter += "Мой опыт в DevOps составляет...\n\n"
-        else:
-            base_letter += "Мой опыт и навыки соответствуют вашим требованиям...\n\n"
-
-        base_letter += "С уважением,\n[Ваше имя]"
-
-        if custom_text:
-            base_letter += f"\n\nP.S. {custom_text}"
-
-        return base_letter
