@@ -511,6 +511,245 @@ body {
     }
 }
 
+/* Дополнительные стили для парсера и кнопок */
+
+/* Стили для кнопок в результатах */
+.success-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.success-actions .btn {
+    min-width: 220px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.success-actions .btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border-color: #3498db;
+}
+
+.success-actions .btn-success {
+    background: linear-gradient(135deg, #27ae60, #229954);
+    color: white;
+    border-color: #27ae60;
+}
+
+.success-actions .btn-outline {
+    background: transparent;
+    color: #7f8c8d;
+    border-color: #bdc3c7;
+}
+
+.success-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.success-actions .btn-primary:hover {
+    background: linear-gradient(135deg, #2980b9, #2471a3);
+}
+
+.success-actions .btn-success:hover {
+    background: linear-gradient(135deg, #229954, #1e8449);
+}
+
+.success-actions .btn-outline:hover {
+    background: #f8f9fa;
+    color: #2c3e50;
+    border-color: #95a5a6;
+}
+
+/* Анимации для результатов */
+.success {
+    animation: slideInUp 0.5s ease-out;
+}
+
+.loading {
+    animation: pulse 2s infinite;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Стили для сообщений о статусе */
+.parse-status {
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    border-left: 4px solid;
+}
+
+.status-info {
+    background: #d6eaf8;
+    border-color: #3498db;
+    color: #2c3e50;
+}
+
+.status-warning {
+    background: #fcf3cf;
+    border-color: #f39c12;
+    color: #7d6608;
+}
+
+.status-success {
+    background: #d5f4e6;
+    border-color: #27ae60;
+    color: #145a32;
+}
+
+.status-error {
+    background: #fadbd8;
+    border-color: #e74c3c;
+    color: #78281f;
+}
+
+/* Стили для прогресс-бара */
+.progress-container {
+    width: 100%;
+    background: #ecf0f1;
+    border-radius: 10px;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 8px;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin-top: 0.5rem;
+}
+
+/* Стили для счетчиков */
+.counter {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #3498db;
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.counter-label {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .success-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .success-actions .btn {
+        min-width: auto;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .parse-status {
+        padding: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .counter {
+        font-size: 1.5rem;
+    }
+}
+
+/* Стили для иконок в кнопках */
+.btn i, .btn span[role="img"] {
+    font-size: 1.1em;
+}
+
+/* Эффекты при наведении на карточки */
+.info-card:hover, .tips-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+/* Стили для формы в фокусе */
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    outline: none;
+}
+
+/* Стили для выпадающих списков */
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237f8c8d' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 2.5rem;
+}
+
+/* Стили для подсказок */
+.form-hint {
+    display: block;
+    margin-top: 0.25rem;
+    color: #7f8c8d;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+/* Стили для групп формы */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.95rem;
+}
+
 .text-center { text-align: center; }
 .mb-1 { margin-bottom: 1rem; }
 .mb-2 { margin-bottom: 2rem; }

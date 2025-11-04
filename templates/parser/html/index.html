@@ -2,10 +2,6 @@
 {% extends 'parser/html/base.html' %}
 {% load static %}
 
-{% block filters %}
-    {% include 'parser/html/includes/filters_section.html' %}
-{% endblock %}
-
 {% block content %}
 <div class="hero-section">
     <div class="hero-content">
@@ -53,56 +49,12 @@
             </div>
         </div>
         {% endif %}
-
-        <!-- УДАЛИТЕ ВЕСЬ БЛОК style-switcher -->
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Инициализация фильтров для главной страницы
-document.addEventListener('DOMContentLoaded', function() {
-    // Автоприменение фильтров если есть параметры в URL
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('keywords') || urlParams.has('min_salary') ||
-        urlParams.has('experience') || urlParams.has('employment')) {
-
-        setTimeout(() => {
-            if (window.filtersManager && typeof window.filtersManager.applyFilters === 'function') {
-                window.filtersManager.applyFilters();
-            }
-        }, 500);
-    }
-});
-
-// Глобальные функции для кнопок фильтров
-function toggleFilters() {
-    const container = document.getElementById('filtersFormContainer');
-    if (container) {
-        container.style.display = container.style.display === 'none' ? 'block' : 'none';
-    }
-}
-
-function resetFilters() {
-    const form = document.getElementById('filterForm');
-    if (form) {
-        form.reset();
-    }
-    const resultsDiv = document.getElementById('filterResults');
-    if (resultsDiv) {
-        resultsDiv.style.display = 'none';
-    }
-    if (window.filtersManager && typeof window.filtersManager.saveFilters === 'function') {
-        window.filtersManager.saveFilters({});
-    }
-}
-
-function hideFilterResults() {
-    const resultsDiv = document.getElementById('filterResults');
-    if (resultsDiv) {
-        resultsDiv.style.display = 'none';
-    }
-}
+// Убрали код связанный с фильтрами
 </script>
 {% endblock %}

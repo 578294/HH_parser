@@ -1,17 +1,191 @@
+// static/parser/js/main.js
 document.addEventListener('DOMContentLoaded', function() {
     console.log('HH Parser frontend initialized');
-
     initializeApp();
 });
 
 function initializeApp() {
     initializeTooltips();
-
     initializeEventHandlers();
-
+    initializeParserHandlers();
     loadStatistics();
 }
 
+function initializeParserHandlers() {
+    // Обработчик для формы парсера
+    const parseForm = document.getElementById('parseForm');
+    if (parseForm) {
+        parseForm.addEventListener('submit', handleParseFormSubmit);
+        console.log('Parser form handler initialized');
+    }
+}
+
+function handleParseFormSubmit(event) {
+    event.preventDefault();
+    console.log('Форма отправлена, начинаем парсинг...');
+
+    const formData = new FormData(event.target);
+    const jsonData = {
+        'query': formData.get('query') || 'Python',
+        'vacancy_count': parseInt(formData.get('vacancy_count') || 50),
+        'keywords': formData.get('keywords') || '',
+        'min_salary': formData.get('min_salary') || '',
+        'experience': formData.get('experience') || '',
+        'employment': formData.get('employment') || '',
+        'min_experience_years': formData.get('min_experience_years') || ''
+    };
+
+    console.log('Данные для парсинга:', jsonData);
+    startParsing(jsonData);
+}
+
+function startParsing(data) {
+    const resultsDiv = document.getElementById('parseResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                <h3>🔍 Парсим вакансии...</h3>
+                <p>Это может занять несколько секунд</p>
+            </div>
+        `;
+    }
+
+    fetch('/parser/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        console.log('Ответ сервера:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(handleParseResponse)
+    .catch(error => {
+        console.error('Ошибка парсинга:', error);
+        showParseError('Ошибка сети при парсинге: ' + error.message);
+    });
+}
+
+function handleParseResponse(response) {
+    console.log('Ответ от парсера:', response);
+    const resultsDiv = document.getElementById('parseResults');
+    if (!resultsDiv) return;
+
+    if (response.success) {
+        showParseSuccess(response);
+    } else {
+        showParseError(response.error || 'Неизвестная ошибка');
+    }
+}
+
+function showParseSuccess(response) {
+    const resultsDiv = document.getElementById('parseResults');
+
+    let successHtml = `
+        <div class="success">
+            <h3>✅ Успешно завершено!</h3>
+            <p>${response.message}</p>
+            <div class="success-stats">
+                <div class="stat">Найдено: ${response.found}</div>
+                <div class="stat">Обработано: ${response.saved}</div>
+            </div>
+            <div class="success-actions">
+    `;
+
+    // Автоматически перенаправляем на страницу вакансий через 3 секунды
+    successHtml += `
+                <div style="margin-bottom: 1rem; text-align: center;">
+                    <p>⏳ Автоматическое перенаправление через <span id="countdown">3</span> секунд...</p>
+                </div>
+                <a href="/vacancies/" class="btn btn-primary">
+                    📋 Перейти к вакансиям сейчас
+                </a>
+    `;
+
+    // Если есть фильтры, добавляем кнопку для просмотра отфильтрованных вакансий
+    if (response.has_filters && response.filter_url && response.found > 0) {
+        successHtml += `
+                <a href="${response.filter_url}" class="btn btn-success">
+                    🔍 Посмотреть найденные вакансии (${response.found})
+                </a>
+        `;
+    }
+
+    successHtml += `
+                <button onclick="resetParserForm()" class="btn btn-outline">
+                    🔄 Новый поиск
+                </button>
+            </div>
+        </div>
+    `;
+
+    resultsDiv.innerHTML = successHtml;
+
+    // Запускаем обратный отсчет для автоматического перенаправления
+    startCountdown(3, '/vacancies/');
+}
+
+function startCountdown(seconds, redirectUrl) {
+    let countdown = seconds;
+    const countdownElement = document.getElementById('countdown');
+
+    const countdownInterval = setInterval(function() {
+        countdown--;
+        if (countdownElement) {
+            countdownElement.textContent = countdown;
+        }
+
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            window.location.href = redirectUrl;
+        }
+    }, 1000);
+}
+
+function showParseError(errorMessage) {
+    const resultsDiv = document.getElementById('parseResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = `
+            <div class="error">
+                <h3>❌ Ошибка!</h3>
+                <p>${errorMessage}</p>
+                <div class="success-actions">
+                    <button onclick="resetParserForm()" class="btn btn-outline">
+                        🔄 Попробовать снова
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function resetParserForm() {
+    const form = document.getElementById('parseForm');
+    if (form) {
+        form.reset();
+        // Устанавливаем значения по умолчанию
+        document.getElementById('query').value = 'Python';
+        document.getElementById('vacancy_count').value = '50';
+    }
+    const resultsDiv = document.getElementById('parseResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = '';
+    }
+}
+
+function getCsrfToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    return csrfToken ? csrfToken.value : '';
+}
+
+// Остальные существующие функции
 function initializeTooltips() {
     const tooltips = document.querySelectorAll('[data-tooltip]');
     tooltips.forEach(element => {
@@ -42,19 +216,16 @@ function hideTooltip() {
 }
 
 function initializeEventHandlers() {
-    // Обработчики для динамического контента
     const searchInputs = document.querySelectorAll('.search-input');
     searchInputs.forEach(input => {
         input.addEventListener('input', debounce(handleSearch, 300));
     });
-
     initializeModals();
 }
 
 function handleSearch(event) {
     const searchValue = event.target.value.toLowerCase();
     const vacancyItems = document.querySelectorAll('.vacancy-item');
-
     vacancyItems.forEach(item => {
         const text = item.textContent.toLowerCase();
         if (text.includes(searchValue)) {
@@ -78,11 +249,11 @@ function debounce(func, wait) {
 }
 
 function initializeModals() {
+    // Инициализация модальных окон
 }
 
 function loadStatistics() {
-    // Загрузка дополнительной статистики
-    fetch('/api/statistics/')  // Если будет API endpoint
+    fetch('/api/statistics/')
         .then(response => response.json())
         .then(data => {
             updateStatistics(data);
@@ -100,12 +271,17 @@ function updateStatistics(data) {
             element.textContent = data[statKey];
         }
     });
+
+    // Обновляем статистику на странице парсера
+    const recentVacancies = document.getElementById('recentVacancies');
+    if (recentVacancies && data.recent_vacancies) {
+        recentVacancies.textContent = data.recent_vacancies;
+    }
 }
 
 function validateForm(form) {
     const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
     let isValid = true;
-
     inputs.forEach(input => {
         if (!input.value.trim()) {
             input.style.borderColor = 'var(--danger-color)';
@@ -114,7 +290,6 @@ function validateForm(form) {
             input.style.borderColor = 'var(--border-color)';
         }
     });
-
     return isValid;
 }
 
@@ -127,9 +302,7 @@ function showNotification(message, type = 'info') {
             <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
         </div>
     `;
-
     document.body.appendChild(notification);
-
     setTimeout(() => {
         if (notification.parentElement) {
             notification.remove();
@@ -137,54 +310,13 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-const notificationStyles = `
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: white;
-    padding: 1rem;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    border-left: 4px solid var(--primary-color);
-    z-index: 10000;
-    max-width: 400px;
-}
-
-.notification-success {
-    border-left-color: var(--success-color);
-}
-
-.notification-error {
-    border-left-color: var(--danger-color);
-}
-
-.notification-warning {
-    border-left-color: var(--warning-color);
-}
-
-.notification-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-}
-
-.notification-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--text-light);
-}
-`;
-
-const styleSheet = document.createElement('style');
-styleSheet.textContent = notificationStyles;
-document.head.appendChild(styleSheet);
-
+// Экспортируем функции для глобального использования
 window.HHParser = {
     showNotification,
     validateForm,
-    debounce
+    debounce,
+    startParsing,
+    handleParseResponse,
+    resetParserForm,
+    startCountdown
 };

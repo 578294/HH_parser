@@ -19,12 +19,12 @@ class Vacancy(models.Model):
 
     title = models.CharField(max_length=255, verbose_name="Название вакансии")
     company = models.CharField(max_length=255, verbose_name="Компания")
-    salary = models.CharField(max_length=100, verbose_name="Зарплата", default="Не указана")
+    salary = models.CharField(max_length=150, verbose_name="Зарплата", default="Не указана")
     description = models.TextField(verbose_name="Описание", blank=True)
     experience = models.CharField(max_length=10, choices=EXPERIENCE_CHOICES, verbose_name="Опыт работы")
     employment = models.CharField(max_length=10, choices=EMPLOYMENT_CHOICES, verbose_name="Тип занятости")
     skills = models.TextField(verbose_name="Навыки", blank=True)
-    link = models.URLField(verbose_name="Ссылка на вакансию", unique=True)
+    link = models.URLField(verbose_name="Ссылка на вакансию", unique=True, max_length=500)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
     # Стилизованные поля
@@ -42,6 +42,12 @@ class Vacancy(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.company}"
+
+    def save(self, *args, **kwargs):
+        # Очистка ссылки перед сохранением
+        if self.link:
+            self.link = self.link.strip()
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Вакансия"

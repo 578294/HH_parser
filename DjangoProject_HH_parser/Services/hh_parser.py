@@ -20,19 +20,22 @@ class HHApiParser:
         self.session = requests.Session()
         self.session.headers.update({'user-agent': USER_AGENT, 'HH-User-Agent': 'HH Parser App'})
 
-    def parse_vacancies(self, search_query="Python", pages=1):
+    def parse_vacancies(self, search_query="Python", vacancy_count=50):
         all_vacancies = []
+        page = 0
+        per_page = min(50, vacancy_count)  # Максимум 50 вакансий на страницу
 
-        if pages > 10:
-            pages = 10
+        # Ограничиваем максимальное количество вакансий для избежания лимитов API
+        if vacancy_count > 500:
+            vacancy_count = 500
 
-        for page in range(pages):
-            print(f"Парсинг страницы {page + 1} из {pages}")
+        while len(all_vacancies) < vacancy_count:
+            print(f"Парсинг страницы {page + 1}, собрано {len(all_vacancies)}/{vacancy_count} вакансий")
 
             params = {
                 'text': search_query,
                 'page': page,
-                'per_page': 50,
+                'per_page': per_page,
                 'area': 1,  # Москва
                 'only_with_salary': False,
             }
@@ -47,6 +50,9 @@ class HHApiParser:
                     break
 
                 for vacancy_data in data['items']:
+                    if len(all_vacancies) >= vacancy_count:
+                        break
+
                     try:
                         vacancy = self.parse_vacancy_item(vacancy_data)
                         if vacancy:
@@ -55,9 +61,12 @@ class HHApiParser:
                         print(f"Ошибка парсинга вакансии: {e}")
                         continue
 
+                # Проверяем, есть ли еще страницы
                 if page >= data['pages'] - 1:
+                    print("Достигнут конец списка вакансий")
                     break
 
+                page += 1
                 time.sleep(0.5)  # Уважаем API HH.ru
 
             except requests.exceptions.RequestException as e:
@@ -71,7 +80,13 @@ class HHApiParser:
         return all_vacancies
 
     def parse_vacancy_item(self, vacancy_data):
-        """Парсинг отдельной вакансии"""
+        """Парсинг отдельной вакансии с улучшенной обработкой данных"""
+
+        # Проверяем наличие обязательных данных
+        if not vacancy_data.get('name') or not vacancy_data.get('alternate_url'):
+            print(f"❌ Пропуск вакансии: отсутствуют обязательные данные")
+            return None
+
         experience_map = {
             'noExperience': 'no',
             'between1And3': '1-3',
@@ -91,15 +106,20 @@ class HHApiParser:
 
         description = self.get_full_description(vacancy_data.get('url'))
 
+        # Обрабатываем навыки
+        skills_text = ', '.join([skill['name'] for skill in vacancy_data.get('key_skills', [])])
+        if len(skills_text) > 1000:  # Ограничиваем длину
+            skills_text = skills_text[:1000] + "..."
+
         vacancy_info = {
-            'title': vacancy_data.get('name', 'Без названия'),
-            'company': vacancy_data.get('employer', {}).get('name', 'Не указано'),
+            'title': vacancy_data.get('name', 'Без названия').strip(),
+            'company': vacancy_data.get('employer', {}).get('name', 'Не указано').strip(),
             'salary': self.parse_salary(vacancy_data.get('salary')),
             'description': description,
             'experience': experience,
             'employment': employment,
-            'skills': ', '.join([skill['name'] for skill in vacancy_data.get('key_skills', [])]),
-            'link': vacancy_data.get('alternate_url', ''),
+            'skills': skills_text,
+            'link': vacancy_data.get('alternate_url', '').strip(),
         }
 
         return vacancy_info
@@ -142,22 +162,58 @@ class HHApiParser:
 
     def save_to_database(self, vacancies):
         saved_count = 0
+        updated_count = 0
+        skipped_count = 0
 
         for vacancy_info in vacancies:
             try:
-                if not vacancy_info.get('title') or not vacancy_info.get('link'):
+                # Проверяем обязательные поля
+                if not vacancy_info.get('title'):
+                    print(f"❌ Пропуск: отсутствует название")
+                    skipped_count += 1
                     continue
 
+                if not vacancy_info.get('link'):
+                    print(f"❌ Пропуск '{vacancy_info.get('title', '')}': отсутствует ссылка")
+                    skipped_count += 1
+                    continue
+
+                # Проверяем корректность ссылки
+                if not vacancy_info['link'].startswith('http'):
+                    print(f"❌ Пропуск '{vacancy_info['title']}': некорректная ссылка '{vacancy_info['link']}'")
+                    skipped_count += 1
+                    continue
+
+                # Подготавливаем данные
+                vacancy_data = {
+                    'title': vacancy_info.get('title', '').strip(),
+                    'company': vacancy_info.get('company', '').strip(),
+                    'salary': vacancy_info.get('salary', 'Не указана'),
+                    'description': vacancy_info.get('description', ''),
+                    'experience': vacancy_info.get('experience', 'no'),
+                    'employment': vacancy_info.get('employment', 'full'),
+                    'skills': vacancy_info.get('skills', ''),
+                }
+
+                # Сохраняем или обновляем
                 obj, created = Vacancy.objects.update_or_create(
-                    link=vacancy_info['link'],
-                    defaults={**vacancy_info}
+                    link=vacancy_info['link'].strip(),
+                    defaults=vacancy_data
                 )
+
                 if created:
                     saved_count += 1
-                    print(f"Сохранена вакансия: {vacancy_info['title'][:50]}...")
+                    print(f"✅ Сохранена: {vacancy_info['title'][:60]}...")
+                else:
+                    updated_count += 1
+                    print(f"🔄 Обновлена: {vacancy_info['title'][:60]}...")
+
             except Exception as e:
-                print(f"Ошибка сохранения вакансии: {e}")
+                print(f"❌ Ошибка сохранения '{vacancy_info.get('title', 'Без названия')}': {e}")
+                skipped_count += 1
                 continue
 
-        print(f"Всего сохранено новых вакансий: {saved_count}")
-        return saved_count
+        # ЭТИ СТРОКИ ДОЛЖНЫ БЫТЬ ЗА ПРЕДЕЛАМИ ЦИКЛА
+        print(f"📊 Итог: сохранено {saved_count}, обновлено {updated_count}, пропущено {skipped_count}")
+        total_processed = saved_count + updated_count
+        return total_processed

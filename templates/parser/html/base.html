@@ -19,15 +19,12 @@
                 <a href="{% url 'vacancy_list' %}" class="nav-link">📋 Вакансии</a>
             </div>
             <div class="nav-stats">
-                <span class="stat-badge">Вакансий: {{ total_vacancies|default:0 }}</span>
+                <span class="stat-badge" id="totalVacancies">Вакансий: {{ total_vacancies|default:0 }}</span>
             </div>
         </div>
     </nav>
 
     <main class="main-content">
-        {% block filters %}
-        {% endblock %}
-
         {% block content %}
         {% endblock %}
     </main>
@@ -45,5 +42,22 @@
     <!-- Блок для дополнительных скриптов -->
     {% block scripts %}
     {% endblock %}
+
+    <script>
+    // Обновляем статистику в навигации
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/statistics/')
+            .then(response => response.json())
+            .then(data => {
+                const totalElement = document.getElementById('totalVacancies');
+                if (totalElement && data.total_vacancies) {
+                    totalElement.textContent = `Вакансий: ${data.total_vacancies}`;
+                }
+            })
+            .catch(error => {
+                console.log('Не удалось загрузить статистику для навигации:', error);
+            });
+    });
+    </script>
 </body>
 </html>

@@ -1,136 +1,489 @@
+<!-- templates/parser/html/parser.html -->
 {% extends 'parser/html/base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="parser-container">
     <div class="parser-header">
-        <h1>Парсер вакансий</h1>
-        <p>Укажите параметры поиска и запустите сбор вакансий</p>
+        <h1>🔍 Парсер вакансий HH.ru</h1>
+        <p class="subtitle">Найдите подходящие вакансии с помощью умных фильтров</p>
     </div>
 
     <div class="parser-form-container">
-        <form id="parser-form" class="parser-form">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="query" class="form-label">
-                    Поисковый запрос:
-                </label>
-                <input type="text" id="query" name="query" value="Python разработчик" 
-                       class="form-control" required placeholder="Введите профессию или ключевые слова">
-                <small class="form-hint">Например: Python, JavaScript, Data Scientist</small>
+        <!-- Основная форма парсера -->
+        <div class="parser-form-section">
+            <form id="parseForm" class="parser-form" method="POST">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="query" class="form-label">
+                        🔎 Поисковый запрос
+                    </label>
+                    <input type="text" id="query" name="query"
+                           value="Python" class="form-control"
+                           placeholder="Введите профессию или технологию...">
+                    <span class="form-hint">
+                        Например: Python, JavaScript, Data Scientist, React
+                    </span>
+                </div>
+
+                <div class="form-group">
+                    <label for="vacancy_count" class="form-label">
+                        📊 Количество вакансий
+                    </label>
+                    <input type="number" id="vacancy_count" name="vacancy_count"
+                           value="50" min="10" max="500" class="form-control">
+                    <span class="form-hint">
+                        От 10 до 500 вакансий (рекомендуется 50-100)
+                    </span>
+                </div>
+
+                <!-- Секция фильтров -->
+                <div class="filters-section">
+                    <div class="filters-header">
+                        <h3>🎯 Фильтры для поиска</h3>
+                        <button type="button" class="toggle-filters-btn"
+                                onclick="toggleFilters()">
+                            📋 Показать/скрыть фильтры
+                        </button>
+                    </div>
+
+                    <div id="filtersFormContainer" style="display: block;">
+                        <div class="filter-form">
+                            <!-- Ключевые слова -->
+                            <div class="filter-group">
+                                <label for="keywords" class="form-label">
+                                    📝 Ключевые слова
+                                </label>
+                                <input type="text" id="keywords" name="keywords"
+                                       class="form-control"
+                                       placeholder="Django, Flask, PostgreSQL...">
+                                <span class="form-hint">
+                                    Укажите ключевые технологии или навыки
+                                </span>
+                            </div>
+
+                            <!-- Минимальная зарплата -->
+                            <div class="filter-group">
+                                <label for="min_salary" class="form-label">
+                                    💰 Минимальная зарплата
+                                </label>
+                                <input type="number" id="min_salary" name="min_salary"
+                                       class="form-control"
+                                       placeholder="Например: 50000">
+                                <span class="form-hint">
+                                    ₽ в месяц (оставьте пустым, если не важно)
+                                </span>
+                            </div>
+
+                            <!-- Опыт работы -->
+                            <div class="filter-group">
+                                <label for="experience" class="form-label">
+                                    📊 Опыт работы
+                                </label>
+                                <select id="experience" name="experience" class="form-control">
+                                    <option value="">Любой опыт</option>
+                                    <option value="no">Без опыта</option>
+                                    <option value="1-3">1-3 года</option>
+                                    <option value="3-6">3-6 лет</option>
+                                    <option value="6+">Более 6 лет</option>
+                                </select>
+                            </div>
+
+                            <!-- Тип занятости -->
+                            <div class="filter-group">
+                                <label for="employment" class="form-label">
+                                    💼 Тип занятости
+                                </label>
+                                <select id="employment" name="employment" class="form-control">
+                                    <option value="">Любой тип</option>
+                                    <option value="full">Полная занятость</option>
+                                    <option value="part">Частичная занятость</option>
+                                    <option value="remote">Удаленная работа</option>
+                                    <option value="project">Проектная работа</option>
+                                </select>
+                            </div>
+
+                            <!-- Минимальный опыт в годах -->
+                            <div class="filter-group">
+                                <label for="min_experience_years" class="form-label">
+                                    ⏳ Мин. опыт (лет)
+                                </label>
+                                <input type="number" id="min_experience_years"
+                                       name="min_experience_years"
+                                       class="form-control" min="0" max="20"
+                                       placeholder="Например: 2">
+                                <span class="form-hint">
+                                    Минимальное количество лет опыта
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="button" class="btn btn-secondary"
+                                    onclick="resetFilters()">
+                                🗑️ Сбросить фильтры
+                            </button>
+                            <button type="button" class="btn btn-outline"
+                                    onclick="testFilters()">
+                                🧪 Тест фильтров
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопка запуска -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-large">
+                        🚀 Запустить парсинг с фильтрами
+                    </button>
+                    <button type="button" class="btn btn-outline"
+                            onclick="startQuickParse()">
+                        ⚡ Быстрый поиск (без фильтров)
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Блок с инструкцией -->
+        <div class="parser-info-section">
+            <div class="info-card">
+                <h3>📖 Как это работает?</h3>
+                <div class="info-steps">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <div class="step-content">
+                            <strong>Заполните основные параметры</strong>
+                            <p>Укажите профессию и количество вакансий для поиска</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <div class="step-content">
+                            <strong>Настройте фильтры (опционально)</strong>
+                            <p>Уточните зарплату, опыт работы и другие параметры</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <div class="step-content">
+                            <strong>Запустите парсинг</strong>
+                            <p>Система найдет вакансии по вашим критериям</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">4</span>
+                        <div class="step-content">
+                            <strong>Просмотрите результаты</strong>
+                            <p>Изучите найденные вакансии и откликайтесь!</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="pages" class="form-label">
-                    Количество страниц:
-                </label>
-                <input type="number" id="pages" name="pages" min="1" max="10" value="2" 
-                       class="form-control" required>
-                <small class="form-hint">Каждая страница содержит до 50 вакансий</small>
+
+            <div class="tips-card">
+                <h3>💡 Советы по поиску</h3>
+                <ul class="tips-list">
+                    <li>Используйте конкретные технологии в ключевых словах</li>
+                    <li>Указывайте реалистичную минимальную зарплату</li>
+                    <li>Фильтруйте по опыту для релевантных результатов</li>
+                    <li>Начинайте с малого количества вакансий для теста</li>
+                </ul>
             </div>
-            
-            <button type="submit" class="btn btn-primary btn-large" id="parse-button">
-                Запустить парсинг
-            </button>
-        </form>
-        
-        <div class="parser-info">
-            <h3>Информация</h3>
-            <ul>
-                <li>Данные берутся с официального API HH.ru</li>
-                <li>Парсинг полностью легален</li>
-                <li>Соблюдаются лимиты запросов</li>
-                <li>Данные сохраняются в базу SQLite</li>
-            </ul>
         </div>
     </div>
-    
-    <div id="results" class="results-container"></div>
+
+    <!-- Контейнер для результатов -->
+    <div class="results-container" id="resultsContainer">
+        <div id="parseResults"></div>
+    </div>
+
+    <!-- Быстрая статистика -->
+    <div class="quick-stats">
+        <div class="stat-card">
+            <h3>{{ total_vacancies|default:"0" }}</h3>
+            <p>Всего вакансий в базе</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="recentVacancies">0</h3>
+            <p>Новых за неделю</p>
+        </div>
+        <div class="stat-card">
+            <h3>50</h3>
+            <p>Макс. за один запрос</p>
+        </div>
+    </div>
 </div>
+
+<style>
+.parser-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.parser-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.parser-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #7f8c8d;
+}
+
+.parser-form-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+}
+
+.parser-form-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.filters-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 2rem 0;
+    border: 2px solid #e9ecef;
+}
+
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.toggle-filters-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.filter-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.filter-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    flex: 1;
+}
+
+/* Стили для информационной секции */
+.parser-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.info-card, .tips-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.info-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.step-number {
+    background: #3498db;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.step-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #2c3e50;
+}
+
+.tips-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 1rem;
+}
+
+.tips-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #ecf0f1;
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.tips-list li:before {
+    content: "✓";
+    color: #27ae60;
+    position: absolute;
+    left: 0;
+}
+
+/* Стили для результатов */
+.results-container {
+    margin-top: 3rem;
+}
+
+.quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 3rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    color: #3498db;
+    margin-bottom: 0.5rem;
+}
+
+/* Адаптивность */
+@media (max-width: 968px) {
+    .parser-form-container {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .info-steps {
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .parser-container {
+        padding: 1rem;
+    }
+
+    .parser-header h1 {
+        font-size: 2rem;
+    }
+
+    .parser-form-section,
+    .info-card,
+    .tips-card {
+        padding: 1.5rem;
+    }
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('parser-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const resultsDiv = document.getElementById('results');
-    const parseButton = document.getElementById('parse-button');
-    
-    // Блокируем кнопку и показываем загрузку
-    parseButton.disabled = true;
-    parseButton.innerHTML = '⏳ Парсинг...';
-    
-    resultsDiv.innerHTML = `
-        <div class="loading">
-            <div class="spinner"></div>
-            <h3>Парсинг запущен</h3>
-            <p>Идет сбор вакансий с HH.ru, пожалуйста подождите...</p>
-            <p>Это может занять несколько минут в зависимости от количества страниц</p>
-        </div>
-    `;
+// Функции для работы с парсером
+function startQuickParse() {
+    const quickData = {
+        'query': 'Python',
+        'vacancy_count': 30,
+        'keywords': '',
+        'min_salary': '',
+        'experience': '',
+        'employment': '',
+        'min_experience_years': ''
+    };
 
-    fetch('{% url "parser" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Ошибка сети');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            resultsDiv.innerHTML = `
-                <div class="success">
-                    <div class="success-icon"></div>
-                    <h3>Успешно завершено!</h3>
-                    <p><strong>${data.message}</strong></p>
-                    <div class="success-stats">
-                        <span class="stat">Найдено: ${data.found}</span>
-                        <span class="stat">Сохранено: ${data.saved}</span>
-                    </div>
-                    <div class="success-actions">
-                        <a href="{% url 'vacancy_list' %}" class="btn btn-success">
-                            📋 Посмотреть все вакансии
-                        </a>
-                        <button onclick="location.reload()" class="btn btn-outline">
-                            🔄 Новый поиск
-                        </button>
-                    </div>
-                </div>
-            `;
-        } else {
-            resultsDiv.innerHTML = `
-                <div class="error">
-                    <div class="error-icon"></div>
-                    <h3>Ошибка</h3>
-                    <p>${data.error}</p>
-                    <button onclick="location.reload()" class="btn btn-outline">
-                        Попробовать снова
-                    </button>
-                </div>
-            `;
-        }
-    })
-    .catch(error => {
-        resultsDiv.innerHTML = `
-            <div class="error">
-                <div class="error-icon"></div>
-                <h3>Ошибка сети</h3>
-                <p>${error.message}</p>
-                <p>Проверьте подключение к интернету и попробуйте снова</p>
-            </div>
-        `;
-    })
-    .finally(() => {
-        parseButton.disabled = false;
-        parseButton.innerHTML = 'Запустить парсинг';
-    });
+    if (window.HHParser && window.HHParser.startParsing) {
+        window.HHParser.startParsing(quickData);
+    } else {
+        console.error('HHParser not initialized');
+    }
+}
+
+function testFilters() {
+    const formData = new FormData(document.getElementById('parseForm'));
+    const filters = {
+        'keywords': formData.get('keywords') || '',
+        'min_salary': formData.get('min_salary') || '',
+        'experience': formData.get('experience') || '',
+        'employment': formData.get('employment') || '',
+        'min_experience_years': formData.get('min_experience_years') || ''
+    };
+
+    const activeFilters = Object.values(filters).filter(val => val !== '').length;
+    alert(`Активных фильтров: ${activeFilters}\n\nКлючевые слова: ${filters.keywords || 'не указаны'}\nЗарплата от: ${filters.min_salary || 'не указана'}₽\nОпыт: ${filters.experience || 'любой'}\nЗанятость: ${filters.employment || 'любая'}\nМин. опыт: ${filters.min_experience_years || 'не указан'} лет`);
+}
+
+// Отладочная информация
+console.log('Parser page loaded');
+
+// Проверяем, что форма существует
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('parseForm');
+    if (form) {
+        console.log('Form found, setting up handlers');
+    } else {
+        console.error('Form not found!');
+    }
 });
 </script>
 {% endblock %}
