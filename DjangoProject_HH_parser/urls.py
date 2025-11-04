@@ -1,4 +1,3 @@
-# DjangoProject_HH_parser/urls.py
 from django.contrib import admin
 from django.urls import path
 from hhparser.views import (IndexView, ParserView, VacancyListView, StatisticsView,

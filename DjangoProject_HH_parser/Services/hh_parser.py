@@ -1,4 +1,3 @@
-# DjangoProject_HH_parser/Services/hh_parser.py
 import requests
 import time
 import os
@@ -213,7 +212,6 @@ class HHApiParser:
                 skipped_count += 1
                 continue
 
-        # ЭТИ СТРОКИ ДОЛЖНЫ БЫТЬ ЗА ПРЕДЕЛАМИ ЦИКЛА
         print(f"📊 Итог: сохранено {saved_count}, обновлено {updated_count}, пропущено {skipped_count}")
         total_processed = saved_count + updated_count
         return total_processed

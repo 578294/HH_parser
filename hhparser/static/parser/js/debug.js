@@ -1,4 +1,3 @@
-// static/parser/js/debug.js
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== DEBUG MODE ===');
     console.log('Проверка доступности API:');

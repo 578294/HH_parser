@@ -1,5 +1,3 @@
-// static/parser/js/filters.js
-
 // Функции для работы с фильтрами
 function toggleFilters() {
     const container = document.getElementById('filtersFormContainer');

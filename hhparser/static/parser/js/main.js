@@ -1,4 +1,3 @@
-// static/parser/js/main.js
 document.addEventListener('DOMContentLoaded', function() {
     console.log('HH Parser frontend initialized');
     initializeApp();

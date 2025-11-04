@@ -1,5 +1,3 @@
-# hhparser/services/filters.py
-
 class UniversalVacancyFilter:
     """Универсальный фильтр для всех стилей"""
 
