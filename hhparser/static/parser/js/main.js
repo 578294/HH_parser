@@ -73,6 +73,8 @@ function startParsing(data) {
     });
 }
 
+// static/parser/js/main.js - ЗАМЕНИТЕ эту функцию
+
 function handleParseResponse(response) {
     console.log('Ответ от парсера:', response);
     const resultsDiv = document.getElementById('parseResults');
@@ -80,6 +82,12 @@ function handleParseResponse(response) {
 
     if (response.success) {
         showParseSuccess(response);
+
+        // АВТОМАТИЧЕСКОЕ ПЕРЕНАПРАВЛЕНИЕ НА ВАКАНСИИ
+        if (response.saved > 0) {
+            console.log('Автоматическое перенаправление через 3 секунды...');
+            startCountdown(3, response.filter_url || '/vacancies/');
+        }
     } else {
         showParseError(response.error || 'Неизвестная ошибка');
     }
@@ -99,37 +107,43 @@ function showParseSuccess(response) {
             <div class="success-actions">
     `;
 
-    // Автоматически перенаправляем на страницу вакансий через 3 секунды
+    // Добавляем информацию о перенаправлении
     successHtml += `
-                <div style="margin-bottom: 1rem; text-align: center;">
-                    <p>⏳ Автоматическое перенаправление через <span id="countdown">3</span> секунд...</p>
+                <div style="margin-bottom: 1rem; text-align: center; background: #e8f5e8; padding: 1rem; border-radius: 8px;">
+                    <p>⏳ <strong>Автоматическое перенаправление через <span id="countdown">3</span> секунд...</strong></p>
+                    <small>Или нажмите кнопку ниже для немедленного перехода</small>
                 </div>
-                <a href="/vacancies/" class="btn btn-primary">
-                    📋 Перейти к вакансиям сейчас
-                </a>
     `;
 
-    // Если есть фильтры, добавляем кнопку для просмотра отфильтрованных вакансий
-    if (response.has_filters && response.filter_url && response.found > 0) {
+    // Основные кнопки действий
+    if (response.filter_url && response.found > 0) {
         successHtml += `
-                <a href="${response.filter_url}" class="btn btn-success">
+                <a href="${response.filter_url}" class="btn btn-success" style="text-decoration: none;">
                     🔍 Посмотреть найденные вакансии (${response.found})
+                </a>
+        `;
+    } else {
+        successHtml += `
+                <a href="/vacancies/" class="btn btn-success" style="text-decoration: none;">
+                    📋 Перейти к списку вакансий
                 </a>
         `;
     }
 
     successHtml += `
-                <button onclick="resetParserForm()" class="btn btn-outline">
+                <a href="/parser/" class="btn btn-outline" style="text-decoration: none;">
                     🔄 Новый поиск
-                </button>
+                </a>
             </div>
         </div>
     `;
 
     resultsDiv.innerHTML = successHtml;
 
-    // Запускаем обратный отсчет для автоматического перенаправления
-    startCountdown(3, '/vacancies/');
+    // Запускаем обратный отсчет
+    if (response.saved > 0) {
+        startCountdown(3, response.filter_url || '/vacancies/');
+    }
 }
 
 function startCountdown(seconds, redirectUrl) {
@@ -144,11 +158,11 @@ function startCountdown(seconds, redirectUrl) {
 
         if (countdown <= 0) {
             clearInterval(countdownInterval);
+            console.log('Перенаправление на:', redirectUrl);
             window.location.href = redirectUrl;
         }
     }, 1000);
 }
-
 function showParseError(errorMessage) {
     const resultsDiv = document.getElementById('parseResults');
     if (resultsDiv) {

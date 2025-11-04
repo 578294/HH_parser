@@ -1,10 +1,16 @@
+<!-- templates/parser/html/vacancies.html -->
 {% extends 'parser/html/base.html' %}
 
 {% block content %}
 <div class="vacancies-container">
+    <!-- Отладочная информация -->
+    <div class="debug-panel" style="background: #e3f2fd; padding: 0.5rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.8rem; color: #1565c0;">
+        🔍 Отладка: Найдено {{ vacancies_count }} вакансий | Показано: {{ vacancies|length }} на этой странице
+    </div>
+
     <div class="vacancies-header">
         <h1>📋 Список вакансий</h1>
-        
+
         <!-- Блок активных фильтров -->
         {% if has_active_filters %}
         <div class="active-filters" style="background: #e8f5e8; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #27ae60;">
@@ -69,7 +75,8 @@
             </form>
 
             <div class="vacancies-stats">
-                <span class="stat-badge">Найдено: {{ vacancies_count }}</span>
+                <span class="stat-badge">Всего: {{ vacancies_count }}</span>
+                <span class="stat-badge" style="background: #3498db;">На странице: {{ vacancies|length }}</span>
                 {% if has_active_filters %}
                 <span class="stat-badge" style="background: #27ae60;">🔍 С фильтрами</span>
                 {% endif %}
@@ -91,14 +98,24 @@
                     <span class="vacancy-salary">{{ vacancy.salary }}</span>
                 </div>
 
-                <div class="vacancy-company">{{ vacancy.company }}</div>
+                <div class="vacancy-company">🏢 {{ vacancy.company }}</div>
 
                 <div class="vacancy-meta">
                     <span class="meta-item">
-                        📊 Опыт: {{ vacancy.get_experience_display }}
+                        📊 Опыт:
+                        {% if vacancy.experience == 'no' %}Нет опыта
+                        {% elif vacancy.experience == '1-3' %}1-3 года
+                        {% elif vacancy.experience == '3-6' %}3-6 лет
+                        {% elif vacancy.experience == '6+' %}Более 6 лет
+                        {% else %}{{ vacancy.experience }}{% endif %}
                     </span>
                     <span class="meta-item">
-                        💼 {{ vacancy.get_employment_display }}
+                        💼
+                        {% if vacancy.employment == 'full' %}Полная занятость
+                        {% elif vacancy.employment == 'part' %}Частичная занятость
+                        {% elif vacancy.employment == 'remote' %}Удаленная работа
+                        {% elif vacancy.employment == 'project' %}Проектная работа
+                        {% else %}{{ vacancy.employment }}{% endif %}
                     </span>
                     <span class="meta-item">
                         📅 {{ vacancy.created_at|date:"d.m.Y H:i" }}
@@ -134,12 +151,32 @@
             {% endfor %}
         </div>
 
-        {% if vacancies_count > 20 %}
-        <div class="pagination" style="text-align: center; margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
-            <p style="margin: 0; color: #666;">
-                📄 Показано <strong>{{ vacancies_count }}</strong> вакансий
-                {% if has_active_filters %} с примененными фильтрами{% endif %}
-            </p>
+        <!-- ПАГИНАЦИЯ -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination" style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px;">
+            <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                       class="btn btn-outline">
+                        ← Назад
+                    </a>
+                {% endif %}
+
+                <span class="current-page" style="padding: 0.5rem 1rem; background: white; border-radius: 6px; font-weight: 500;">
+                    Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% for key,value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+                       class="btn btn-outline">
+                        Вперед →
+                    </a>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                📄 Показано {{ vacancies|length }} из {{ vacancies_count }} вакансий
+            </div>
         </div>
         {% endif %}
 
@@ -151,7 +188,7 @@
                     {% if has_active_filters %}
                     По вашим фильтрам ничего не найдено. Попробуйте изменить условия поиска.
                     {% else %}
-                    Попробуйте изменить поисковый запрос или запустите парсер для сбора вакансий
+                    В базе данных пока нет вакансий. Запустите парсер для сбора вакансий.
                     {% endif %}
                 </p>
                 <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
@@ -169,6 +206,88 @@
     {% endif %}
 </div>
 
+<style>
+.debug-panel {
+    font-family: monospace;
+    border: 1px solid #90caf9;
+}
+
+.vacancy-item {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.vacancy-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-color: #3498db;
+}
+
+.vacancy-link {
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.vacancy-link:hover {
+    color: #3498db;
+    text-decoration: underline;
+}
+
+.vacancy-salary {
+    background: #27ae60;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.skills-list {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+    border-left: 3px solid #3498db;
+    font-size: 0.9rem;
+}
+
+.vacancy-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.vacancy-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.pagination {
+    border: 1px solid #e0e0e0;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
 <script>
 function generateCoverLetter(vacancyId) {
     fetch('/api/generate-letter/', {
@@ -192,7 +311,7 @@ function generateCoverLetter(vacancyId) {
                     <head><title>Сопроводительное письмо</title></head>
                     <body style="font-family: Arial, sans-serif; padding: 2rem;">
                         <pre style="white-space: pre-wrap; font-size: 14px;">${data.letter_content}</pre>
-                        <button onclick="window.print()" style="margin-top: 1rem; padding: 0.5rem 1rem;">🖨️ Печать</button>
+                        <button onclick="window.print()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">🖨️ Печать</button>
                     </body>
                 </html>
             `);
@@ -210,22 +329,28 @@ function getCsrfToken() {
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
     return csrfToken ? csrfToken.value : '';
 }
+
+// Отладочная информация в консоли
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📊 Информация о вакансиях:');
+    console.log('- Всего найдено:', {{ vacancies_count }});
+    console.log('- На текущей странице:', {{ vacancies|length }});
+    console.log('- Активные фильтры:', {{ has_active_filters|yesno:"да,нет" }});
+
+    // Добавляем обработчики клика для вакансий
+    const vacancyItems = document.querySelectorAll('.vacancy-item');
+    vacancyItems.forEach(item => {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', function(e) {
+            // Не открываем ссылку, если кликнули на кнопку
+            if (!e.target.closest('.btn')) {
+                const link = this.querySelector('.vacancy-link');
+                if (link) {
+                    window.open(link.href, '_blank');
+                }
+            }
+        });
+    });
+});
 </script>
-
-<style>
-.filter-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-}
-
-.vacancy-item {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.vacancy-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-</style>
 {% endblock %}

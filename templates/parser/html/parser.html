@@ -435,12 +435,113 @@
         padding: 1.5rem;
     }
 }
+
+/* Стили для уведомлений о перенаправлении */
+.countdown-notification {
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    text-align: center;
+    border-left: 4px solid #28a745;
+}
+
+.countdown-number {
+    display: inline-block;
+    background: #28a745;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 30px;
+    font-weight: bold;
+    margin: 0 5px;
+}
+
+/* Анимации для плавного появления */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.success {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Стили для кнопок действий */
+.success-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.success-actions .btn {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-align: center;
+    min-width: 250px;
+}
+
+.success-actions .btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border-color: #28a745;
+}
+
+.success-actions .btn-success:hover {
+    background: linear-gradient(135deg, #218838, #1e9c7a);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.success-actions .btn-outline {
+    background: transparent;
+    color: #6c757d;
+    border-color: #6c757d;
+}
+
+.success-actions .btn-outline:hover {
+    background: #f8f9fa;
+    color: #495057;
+    border-color: #495057;
+    transform: translateY(-2px);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .success-actions {
+        flex-direction: column;
+    }
+
+    .success-actions .btn {
+        min-width: auto;
+        width: 100%;
+    }
+}
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Функции для работы с парсером
+// Улучшенные функции для парсера
 function startQuickParse() {
     const quickData = {
         'query': 'Python',
@@ -452,11 +553,8 @@ function startQuickParse() {
         'min_experience_years': ''
     };
 
-    if (window.HHParser && window.HHParser.startParsing) {
-        window.HHParser.startParsing(quickData);
-    } else {
-        console.error('HHParser not initialized');
-    }
+    console.log('Быстрый поиск:', quickData);
+    startParsing(quickData);
 }
 
 function testFilters() {
@@ -473,17 +571,74 @@ function testFilters() {
     alert(`Активных фильтров: ${activeFilters}\n\nКлючевые слова: ${filters.keywords || 'не указаны'}\nЗарплата от: ${filters.min_salary || 'не указана'}₽\nОпыт: ${filters.experience || 'любой'}\nЗанятость: ${filters.employment || 'любая'}\nМин. опыт: ${filters.min_experience_years || 'не указан'} лет`);
 }
 
-// Отладочная информация
-console.log('Parser page loaded');
-
-// Проверяем, что форма существует
+// Проверяем загрузку скриптов
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Parser page loaded - проверка функций:');
+    console.log('- startParsing:', typeof startParsing);
+    console.log('- handleParseResponse:', typeof handleParseResponse);
+    console.log('- HHParser:', window.HHParser);
+
     const form = document.getElementById('parseForm');
     if (form) {
-        console.log('Form found, setting up handlers');
+        console.log('✅ Форма найдена, обработчики установлены');
+
+        // Добавляем обработчик для отслеживания отправки формы
+        form.addEventListener('submit', function(e) {
+            console.log('Форма отправлена, начинаем парсинг...');
+            console.log('Данные формы:', {
+                query: document.getElementById('query').value,
+                vacancy_count: document.getElementById('vacancy_count').value,
+                keywords: document.getElementById('keywords').value,
+                min_salary: document.getElementById('min_salary').value,
+                experience: document.getElementById('experience').value,
+                employment: document.getElementById('employment').value,
+                min_experience_years: document.getElementById('min_experience_years').value
+            });
+        });
     } else {
-        console.error('Form not found!');
+        console.error('❌ Форма не найдена!');
     }
 });
+
+// Глобальные функции для использования в HTML
+window.startQuickParse = startQuickParse;
+window.testFilters = testFilters;
+window.resetParserForm = resetParserForm;
+
+// Функция для сброса формы парсера
+function resetParserForm() {
+    const form = document.getElementById('parseForm');
+    if (form) {
+        form.reset();
+        // Устанавливаем значения по умолчанию
+        document.getElementById('query').value = 'Python';
+        document.getElementById('vacancy_count').value = '50';
+    }
+    const resultsDiv = document.getElementById('parseResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML = '';
+    }
+    console.log('Форма сброшена');
+}
+
+// Функции для работы с фильтрами
+function toggleFilters() {
+    const container = document.getElementById('filtersFormContainer');
+    if (container) {
+        container.style.display = container.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function resetFilters() {
+    document.getElementById('keywords').value = '';
+    document.getElementById('min_salary').value = '';
+    document.getElementById('experience').value = '';
+    document.getElementById('employment').value = '';
+    document.getElementById('min_experience_years').value = '';
+    console.log('Фильтры сброшены');
+}
 </script>
+
+<!-- Отладочный скрипт -->
+<script src="{% static 'parser/js/debug.js' %}"></script>
 {% endblock %}
