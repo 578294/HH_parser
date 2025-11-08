@@ -27,6 +27,12 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
+## Использование
+```
+python manage.py runserver
+Откройте в браузере: http://localhost:8000
+```
+
 ## API Endpoints
 - `GET /api/vacancies/` - получение списка вакансий
 - `POST /api/filter-vacancies/` - фильтрация вакансий
