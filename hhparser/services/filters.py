@@ -133,60 +133,6 @@ class StyleFilterManager:
                 ],
                 'salary_placeholder': 'Минимальная зарплата',
                 'keywords_placeholder': 'Ключевые слова...'
-            },
-            'HP': {
-                'experience_options': [
-                    {'value': '', 'text': 'ЛЮБОЙ (ДАЖЕ МАГЛ!)'},
-                    {'value': 'no', 'text': 'НЕОФИТ (ПЕРВОКУРСНИК)'},
-                    {'value': '1-3', 'text': '1-3 ГОДА (СТАРШЕКУРСНИК)'},
-                    {'value': '3-6', 'text': '3-6 ЛЕТ (ВЫПУСКНИК ХОГВАРТСА)'},
-                    {'value': '6+', 'text': 'БОЛЕЕ 6 ЛЕТ (ПРОФЕССОР)'}
-                ],
-                'employment_options': [
-                    {'value': '', 'text': 'ЛЮБАЯ (ДАЖЕ В МИНИСТЕРСТВЕ!)'},
-                    {'value': 'full', 'text': 'ПОЛНАЯ (КАК У ДИРЕКТОРА)'},
-                    {'value': 'part', 'text': 'ЧАСТИЧНАЯ (ПО СОВМЕСТИТЕЛЬСТВУ)'},
-                    {'value': 'remote', 'text': 'УДАЛЕННАЯ (ЧЕРЕЗ КАМИН)'},
-                    {'value': 'project', 'text': 'ПРОЕКТНАЯ (МИССИЯ)'}
-                ],
-                'salary_placeholder': 'МИНИМАЛЬНАЯ ЗАРПЛАТА (В ГАЛЕОНАХ)',
-                'keywords_placeholder': 'ЗАКЛИНАНИЯ, ПРЕДМЕТЫ, НАВЫКИ...'
-            },
-            'SP': {
-                'experience_options': [
-                    {'value': '', 'text': 'ЛЮБОЙ (ДАЖЕ У КАРТМАНА!)'},
-                    {'value': 'no', 'text': 'БЕЗ ОПЫТА (КАК КАРТМАН)'},
-                    {'value': '1-3', 'text': '1-3 ГОДА (КАК КЕНИ В 4 КЛАССЕ)'},
-                    {'value': '3-6', 'text': '3-6 ЛЕТ (КАК СТЭН ПОСЛЕ ШКОЛЫ)'},
-                    {'value': '6+', 'text': 'БОЛЕЕ 6 ЛЕТ (КАК МИСТЕР ГАРРИСОН)'}
-                ],
-                'employment_options': [
-                    {'value': '', 'text': 'ЛЮБАЯ (RESPECT MY AUTHORITAH!)'},
-                    {'value': 'full', 'text': 'ПОЛНАЯ (КАК У ШЕФА)'},
-                    {'value': 'part', 'text': 'ЧАСТИЧНАЯ (МЕЖДУ ИГРАМИ)'},
-                    {'value': 'remote', 'text': 'УДАЛЕННАЯ (ИЗ ДОМА)'},
-                    {'value': 'project', 'text': 'ПРОЕКТНАЯ (ПРИКЛЮЧЕНИЕ)'}
-                ],
-                'salary_placeholder': 'МИНИМАЛЬНАЯ ЗАРПЛАТА ($)',
-                'keywords_placeholder': 'PYTHON, LINUX, CHEESY POOFS...'
-            },
-            'WH': {
-                'experience_options': [
-                    {'value': '', 'text': 'ЛЮБОЙ (ДАЖЕ У ЕРЕТИКА!)'},
-                    {'value': 'no', 'text': 'НЕОФИТ (НОВОБРАНЕЦ)'},
-                    {'value': '1-3', 'text': '1-3 ГОДА (ОПЫТНЫЙ ГВАРДИЕЦ)'},
-                    {'value': '3-6', 'text': '3-6 ЛЕТ (ВЕТЕРАН КАДИИ)'},
-                    {'value': '6+', 'text': 'БОЛЕЕ 6 ЛЕТ (СЕРЫЙ РЫЦАРЬ)'}
-                ],
-                'employment_options': [
-                    {'value': '', 'text': 'ЛЮБАЯ (ЗА ИМПЕРАТОРА!)'},
-                    {'value': 'full', 'text': 'ПОЛНАЯ (КРЕСТОВЫЙ ПОХОД)'},
-                    {'value': 'part', 'text': 'ЧАСТИЧНАЯ (ПАТРУЛИРОВАНИЕ)'},
-                    {'value': 'remote', 'text': 'ДИСТАНЦИОННАЯ (АСТРОПАТ)'},
-                    {'value': 'project', 'text': 'ПРОЕКТНАЯ (ЭКСПЕДИЦИЯ)'}
-                ],
-                'salary_placeholder': 'МИНИМАЛЬНАЯ ДЕСЯТИНА (В ДУКАТАХ)',
-                'keywords_placeholder': 'PYTHON, MACHINE SPIRIT, HERESY...'
             }
         }
 
