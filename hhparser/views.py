@@ -12,7 +12,25 @@ import json
 
 
 class VacancyListView(View):
+    """
+    Представление для отображения списка вакансий.
+
+    Обеспечивает фильтрацию, поиск и пагинацию вакансий.
+    Поддерживает сложные фильтры по зарплате, опыту и ключевым словам.
+    """
     def get(self, request):
+        """
+        Обработка GET-запросов для отображения вакансий.
+
+        Применяет фильтры из параметров запроса и формирует paginated response.
+        Поддерживает поиск по всем текстовым полям и сложные условия фильтрации.
+
+        Args:
+            request: HttpRequest (объект запроса с параметрами фильтрации)
+
+        Returns:
+            HttpResponse: отрендеренный шаблон с отфильтрованными вакансиями
+        """
         # Получаем параметры фильтрации
         search_query = request.GET.get('search', '')
         keywords = request.GET.get('keywords', '')
@@ -127,6 +145,12 @@ class IndexView(View):
 
 
 class ParserView(View):
+    """
+    Представление для управления процессом парсинга.
+
+    Обеспечивает взаимодействие между фронтендом и парсером.
+    Поддерживает как form-data, так и JSON запросы.
+    """
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
@@ -138,6 +162,18 @@ class ParserView(View):
         })
 
     def post(self, request):
+        """
+        Обработка запроса на запуск парсинга.
+
+        Получает параметры парсинга, запускает парсер и применяет фильтры.
+        Сохраняет результаты в базу данных и возвращает статистику обработки.
+
+        Args:
+            request: HttpRequest (объект запроса с параметрами парсинга)
+
+        Returns:
+            JsonResponse: результат операции со статистикой и ссылкой на результаты
+        """
         try:
             if request.content_type == 'application/json':
                 data = json.loads(request.body)
@@ -240,6 +276,12 @@ class ParserView(View):
 
 
 class FilterVacanciesView(View):
+    """
+    Представление для фильтрации вакансий через API.
+
+    Предоставляет REST API для фильтрации вакансий по различным критериям.
+    Поддерживает сложную логику сопоставления фильтров с данными вакансий.
+    """
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
@@ -296,7 +338,19 @@ class FilterVacanciesView(View):
         return employment_map.get(employment_code, employment_code)
 
     def matches_filters(self, vacancy, filters):
-        """Проверка фильтров с учетом опыта работы"""
+        """
+        Проверка соответствия вакансии заданным фильтрам.
+
+        Выполняет комплексную проверку вакансии по всем критериям фильтрации.
+        Поддерживает фильтры по зарплате, опыту, занятости и ключевым словам.
+
+        Args:
+            vacancy: Vacancy (объект вакансии для проверки)
+            filters: dict (словарь с параметрами фильтрации)
+
+        Returns:
+            bool: True если вакансия соответствует всем фильтрам, иначе False
+        """
         # Фильтр по ключевым словам
         if filters.get('keywords'):
             keywords = filters['keywords'].lower().strip()

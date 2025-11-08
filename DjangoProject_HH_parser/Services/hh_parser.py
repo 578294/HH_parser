@@ -14,12 +14,38 @@ USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 
 
 class HHApiParser:
+    """
+    Парсер вакансий с API HeadHunter.
+
+    Осуществляет взаимодействие с API hh.ru для получения данных о вакансиях.
+    Поддерживает фильтрацию, пагинацию и сохранение данных в базу данных.
+    Обрабатывает различные форматы данных вакансий и обеспечивает устойчивость к ошибкам API.
+    """
     def __init__(self):
+        """
+        Инициализация парсера.
+
+        Создает HTTP-сессию и устанавливает заголовки для работы с API hh.ru.
+        Настраивает базовые параметры для корректного взаимодействия с API.
+        """
         self.base_url = "https://api.hh.ru/vacancies"
         self.session = requests.Session()
         self.session.headers.update({'user-agent': USER_AGENT, 'HH-User-Agent': 'HH Parser App'})
 
     def parse_vacancies(self, search_query="Python", vacancy_count=50):
+        """
+        Основной метод для парсинга вакансий.
+
+        Выполняет поиск вакансий по заданным параметрам с поддержкой пагинации.
+        Обрабатывает ограничения API и обеспечивает стабильное получение данных.
+
+        Args:
+            search_query: str (поисковый запрос для фильтрации вакансий, по умолчанию "Python")
+            vacancy_count: int (количество вакансий для получения, максимум 500)
+
+        Returns:
+            list: список словарей с данными вакансий
+        """
         all_vacancies = []
         page = 0
         per_page = min(50, vacancy_count)  # Максимум 50 вакансий на страницу
@@ -79,7 +105,18 @@ class HHApiParser:
         return all_vacancies
 
     def parse_vacancy_item(self, vacancy_data):
-        """Парсинг отдельной вакансии с улучшенной обработкой данных"""
+        """
+        Парсинг отдельной вакансии.
+
+        Обрабатывает данные одной вакансии, извлекает основную информацию
+        и преобразует форматы данных в единый стандарт.
+
+        Args:
+            vacancy_data: dict (сырые данные вакансии от API)
+
+        Returns:
+            dict: структурированные данные вакансии или None при ошибке
+        """
 
         # Проверяем наличие обязательных данных
         if not vacancy_data.get('name') or not vacancy_data.get('alternate_url'):
@@ -160,6 +197,18 @@ class HHApiParser:
             return "Не указана"
 
     def save_to_database(self, vacancies):
+        """
+        Сохранение вакансий в базу данных.
+
+        Выполняет валидацию данных и сохраняет/обновляет записи в базе данных.
+        Обеспечивает уникальность записей по ссылке на вакансию.
+
+        Args:
+            vacancies: list (список словарей с данными вакансий)
+
+        Returns:
+            int: количество успешно обработанных вакансий
+        """
         saved_count = 0
         updated_count = 0
         skipped_count = 0
