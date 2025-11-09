@@ -1,36 +1,68 @@
+"""
+Модуль filters.py содержит классы для фильтрации вакансий.
+
+Основные классы:
+- UniversalVacancyFilter: универсальный фильтр для вакансий
+- StyleFilterManager: менеджер конфигураций фильтров
+"""
+
 class UniversalVacancyFilter:
-    """Универсальный фильтр для всех стилей"""
+    """
+    Универсальный фильтр для вакансий.
+
+    Обеспечивает фильтрацию вакансий по ключевым словам, зарплате, опыту работы
+    и типу занятости.
+    """
 
     @staticmethod
-    def filter_vacancies(vacancies, filters, style='default'):
+    def filter_vacancies(vacancies: list, filters: dict) -> list:
         """
-        Фильтрация вакансий с поддержкой всех стилей
+        Фильтрация списка вакансий по заданным параметрам.
+
+        Применяет заданные фильтры к списку вакансий. Поддерживает все основные типы фильтров.
+
+        Args:
+            vacancies: list (список объектов вакансий для фильтрации)
+            filters: dict (словарь с параметрами фильтрации)
+
+        Returns:
+            list: отфильтрованный список вакансий
         """
         filtered = []
 
         for vacancy in vacancies:
-            if UniversalVacancyFilter._matches_filters(vacancy, filters, style):
+            if UniversalVacancyFilter._matches_filters(vacancy, filters):
                 filtered.append(vacancy)
 
         return filtered
 
     @staticmethod
-    def _matches_filters(vacancy, filters, style):
-        """Проверка соответствия вакансии фильтрам"""
+    def _matches_filters(vacancy: object, filters: dict) -> bool:
+        """
+        Проверяет соответствие вакансии заданным фильтрам.
 
+        Выполняет комплексную проверку вакансии по всем критериям фильтрации.
+
+        Args:
+            vacancy: object (объект вакансии для проверки)
+            filters: dict (словарь с параметрами фильтрации)
+
+        Returns:
+            bool: True если вакансия соответствует всем фильтрам, иначе False
+        """
         # Фильтр по ключевым словам
         if filters.get('keywords'):
             keywords = filters['keywords'].lower()
-            if not UniversalVacancyFilter._matches_keywords(vacancy, keywords, style):
+            if not UniversalVacancyFilter._matches_keywords(vacancy, keywords):
                 return False
 
         # Фильтр по минимальной зарплате
         if filters.get('min_salary'):
             min_salary = int(filters['min_salary'])
-            if not UniversalVacancyFilter._matches_salary(vacancy, min_salary, style):
+            if not UniversalVacancyFilter._matches_salary(vacancy, min_salary):
                 return False
 
-        # Фильтр по опыту
+        # Фильтр по опыту работы
         if filters.get('experience') and filters['experience'] != 'any':
             if vacancy.experience != filters['experience']:
                 return False
@@ -43,39 +75,25 @@ class UniversalVacancyFilter:
         return True
 
     @staticmethod
-    def _matches_keywords(vacancy, keywords, style):
-        """Проверка ключевых слов с учетом стиля"""
-        search_fields = []
+    def _matches_keywords(vacancy: object, keywords: str) -> bool:
+        """
+        Проверяет наличие ключевых слов в данных вакансии.
 
-        # Добавляем поля для поиска в зависимости от стиля
-        if style == 'HP':
-            search_fields.extend([
-                getattr(vacancy, 'hp_title', vacancy.title).lower(),
-                getattr(vacancy, 'hp_company', vacancy.company).lower(),
-                vacancy.description.lower(),
-                getattr(vacancy, 'hp_salary', vacancy.salary).lower()
-            ])
-        elif style == 'SP':
-            search_fields.extend([
-                getattr(vacancy, 'sp_title', vacancy.title).lower(),
-                getattr(vacancy, 'sp_company', vacancy.company).lower(),
-                vacancy.description.lower(),
-                getattr(vacancy, 'sp_salary', vacancy.salary).lower()
-            ])
-        elif style == 'WH':
-            search_fields.extend([
-                getattr(vacancy, 'wh_title', vacancy.title).lower(),
-                getattr(vacancy, 'wh_company', vacancy.company).lower(),
-                vacancy.description.lower(),
-                getattr(vacancy, 'wh_salary', vacancy.salary).lower()
-            ])
-        else:
-            search_fields.extend([
-                vacancy.title.lower(),
-                vacancy.company.lower(),
-                vacancy.description.lower(),
-                vacancy.salary.lower()
-            ])
+        Осуществляет поиск ключевых слов в различных полях вакансии.
+
+        Args:
+            vacancy: object (объект вакансии для поиска)
+            keywords: str (ключевые слова для поиска в нижнем регистре)
+
+        Returns:
+            bool: True если ключевые слова найдены, иначе False
+        """
+        search_fields = [
+            vacancy.title.lower(),
+            vacancy.company.lower(),
+            vacancy.description.lower(),
+            vacancy.salary.lower()
+        ]
 
         # Проверяем наличие ключевых слов в любом из полей
         for field in search_fields:
@@ -84,18 +102,21 @@ class UniversalVacancyFilter:
         return False
 
     @staticmethod
-    def _matches_salary(vacancy, min_salary, style):
-        """Проверка зарплаты с учетом стиля"""
-        salary_text = ""
+    def _matches_salary(vacancy: object, min_salary: int) -> bool:
+        """
+        Проверяет соответствие зарплаты вакансии минимальному требованию.
 
-        if style == 'HP':
-            salary_text = getattr(vacancy, 'hp_salary', vacancy.salary)
-        elif style == 'SP':
-            salary_text = getattr(vacancy, 'sp_salary', vacancy.salary)
-        elif style == 'WH':
-            salary_text = getattr(vacancy, 'wh_salary', vacancy.salary)
-        else:
-            salary_text = vacancy.salary
+        Анализирует данные о зарплате вакансии, извлекая числовые значения
+        из текстового представления.
+
+        Args:
+            vacancy: object (объект вакансии для проверки)
+            min_salary: int (минимальная требуемая зарплата)
+
+        Returns:
+            bool: True если зарплата соответствует требованию или не указана, иначе False
+        """
+        salary_text = vacancy.salary
 
         # Извлекаем числа из текста зарплаты
         import re
@@ -110,30 +131,37 @@ class UniversalVacancyFilter:
 
 
 class StyleFilterManager:
-    """Менеджер фильтров для разных стилей"""
+    """
+    Менеджер конфигураций фильтров.
+
+    Предоставляет настройки интерфейса фильтрации.
+    """
 
     @staticmethod
-    def get_filter_config(style):
-        """Конфигурация фильтров для каждого стиля"""
-        configs = {
-            'default': {
-                'experience_options': [
-                    {'value': '', 'text': 'ЛЮБОЙ'},
-                    {'value': 'no', 'text': 'Без опыта'},
-                    {'value': '1-3', 'text': '1-3 года'},
-                    {'value': '3-6', 'text': '3-6 лет'},
-                    {'value': '6+', 'text': 'Более 6 лет'}
-                ],
-                'employment_options': [
-                    {'value': '', 'text': 'ЛЮБОЙ'},
-                    {'value': 'full', 'text': 'Полная занятость'},
-                    {'value': 'part', 'text': 'Частичная занятость'},
-                    {'value': 'remote', 'text': 'Удаленная работа'},
-                    {'value': 'project', 'text': 'Проектная работа'}
-                ],
-                'salary_placeholder': 'Минимальная зарплата',
-                'keywords_placeholder': 'Ключевые слова...'
-            }
-        }
+    def get_filter_config() -> dict:
+        """
+        Возвращает конфигурацию фильтров.
 
-        return configs.get(style, configs['default'])
+        Предоставляет тексты, плейсхолдеры и опции для элементов интерфейса фильтрации.
+
+        Returns:
+            dict: конфигурация фильтров
+        """
+        return {
+            'experience_options': [
+                {'value': '', 'text': 'ЛЮБОЙ'},
+                {'value': 'no', 'text': 'Без опыта'},
+                {'value': '1-3', 'text': '1-3 года'},
+                {'value': '3-6', 'text': '3-6 лет'},
+                {'value': '6+', 'text': 'Более 6 лет'}
+            ],
+            'employment_options': [
+                {'value': '', 'text': 'ЛЮБОЙ'},
+                {'value': 'full', 'text': 'Полная занятость'},
+                {'value': 'part', 'text': 'Частичная занятость'},
+                {'value': 'remote', 'text': 'Удаленная работа'},
+                {'value': 'project', 'text': 'Проектная работа'}
+            ],
+            'salary_placeholder': 'Минимальная зарплата',
+            'keywords_placeholder': 'Ключевые слова...'
+        }
