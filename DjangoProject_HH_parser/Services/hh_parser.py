@@ -1,3 +1,13 @@
+"""
+Модуль hh_parser.py содержит класс HHApiParser для парсинга вакансий с HeadHunter API.
+
+Основной функционал:
+- Парсинг вакансий по поисковым запросам
+- Обработка и нормализация данных вакансий
+- Сохранение данных в базу данных
+- Обработка ошибок API и сетевых сбоев
+"""
+
 import requests
 import time
 import os
@@ -15,29 +25,32 @@ USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 
 class HHApiParser:
     """
-    Парсер вакансий с API HeadHunter.
+    Парсер для взаимодействия с API HeadHunter и получения данных о вакансиях.
 
-    Осуществляет взаимодействие с API hh.ru для получения данных о вакансиях.
-    Поддерживает фильтрацию, пагинацию и сохранение данных в базу данных.
-    Обрабатывает различные форматы данных вакансий и обеспечивает устойчивость к ошибкам API.
+    Обеспечивает сбор, обработку и сохранение данных вакансий с поддержкой
+    фильтрации, пагинации и обработки ошибок API.
     """
-    def __init__(self):
-        """
-        Инициализация парсера.
 
-        Создает HTTP-сессию и устанавливает заголовки для работы с API hh.ru.
-        Настраивает базовые параметры для корректного взаимодействия с API.
+    def __init__(self) -> None:
+        """
+        Инициализация парсера с настройками HTTP-сессии.
+
+        Создает сессию requests с пользовательскими заголовками
+        для корректной работы с API HH.ru.
         """
         self.base_url = "https://api.hh.ru/vacancies"
         self.session = requests.Session()
-        self.session.headers.update({'user-agent': USER_AGENT, 'HH-User-Agent': 'HH Parser App'})
+        self.session.headers.update({
+            'user-agent': USER_AGENT,
+            'HH-User-Agent': 'HH Parser App'
+        })
 
-    def parse_vacancies(self, search_query="Python", vacancy_count=50):
+    def parse_vacancies(self, search_query: str = "Python", vacancy_count: int = 50) -> list:
         """
-        Основной метод для парсинга вакансий.
+        Основной метод для парсинга вакансий по заданным параметрам.
 
-        Выполняет поиск вакансий по заданным параметрам с поддержкой пагинации.
-        Обрабатывает ограничения API и обеспечивает стабильное получение данных.
+        Выполняет поиск вакансий с поддержкой пагинации и ограничений API.
+        Обрабатывает сетевые ошибки и ограничения на количество запросов.
 
         Args:
             search_query: str (поисковый запрос для фильтрации вакансий, по умолчанию "Python")
@@ -48,7 +61,7 @@ class HHApiParser:
         """
         all_vacancies = []
         page = 0
-        per_page = min(50, vacancy_count)  # Максимум 50 вакансий на страницу
+        per_page = min(50, vacancy_count)
 
         # Ограничиваем максимальное количество вакансий для избежания лимитов API
         if vacancy_count > 500:
@@ -104,12 +117,12 @@ class HHApiParser:
         print(f"Всего собрано вакансий: {len(all_vacancies)}")
         return all_vacancies
 
-    def parse_vacancy_item(self, vacancy_data):
+    def parse_vacancy_item(self, vacancy_data: dict) -> dict:
         """
-        Парсинг отдельной вакансии.
+        Парсинг отдельной вакансии и преобразование данных в единый формат.
 
         Обрабатывает данные одной вакансии, извлекает основную информацию
-        и преобразует форматы данных в единый стандарт.
+        и преобразует форматы данных в единый стандарт приложения.
 
         Args:
             vacancy_data: dict (сырые данные вакансии от API)
@@ -117,7 +130,6 @@ class HHApiParser:
         Returns:
             dict: структурированные данные вакансии или None при ошибке
         """
-
         # Проверяем наличие обязательных данных
         if not vacancy_data.get('name') or not vacancy_data.get('alternate_url'):
             print(f"❌ Пропуск вакансии: отсутствуют обязательные данные")
@@ -139,7 +151,6 @@ class HHApiParser:
 
         experience = experience_map.get(vacancy_data.get('experience', {}).get('id'), 'no')
         employment = employment_map.get(vacancy_data.get('employment', {}).get('id'), 'full')
-
         description = self.get_full_description(vacancy_data.get('url'))
 
         # Обрабатываем навыки
@@ -160,8 +171,19 @@ class HHApiParser:
 
         return vacancy_info
 
-    def get_full_description(self, vacancy_url):
-        """Получение полного описания вакансии"""
+    def get_full_description(self, vacancy_url: str) -> str:
+        """
+        Получение полного описания вакансии по URL.
+
+        Выполняет дополнительный запрос для получения детального описания
+        вакансии и очищает HTML-разметку.
+
+        Args:
+            vacancy_url: str (URL для получения полного описания)
+
+        Returns:
+            str: очищенное текстовое описание вакансии
+        """
         if not vacancy_url:
             return ""
 
@@ -178,8 +200,19 @@ class HHApiParser:
             print(f"Не удалось получить полное описание: {e}")
             return ""
 
-    def parse_salary(self, salary_data):
-        """Обработка зарплаты"""
+    def parse_salary(self, salary_data: dict) -> str:
+        """
+        Обработка и форматирование данных о зарплате.
+
+        Преобразует данные о зарплате из API в читаемый формат
+        с поддержкой диапазонов и различных валют.
+
+        Args:
+            salary_data: dict (данные о зарплате от API)
+
+        Returns:
+            str: отформатированная строка с информацией о зарплате
+        """
         if not salary_data:
             return "Не указана"
 
@@ -196,9 +229,9 @@ class HHApiParser:
         else:
             return "Не указана"
 
-    def save_to_database(self, vacancies):
+    def save_to_database(self, vacancies: list) -> int:
         """
-        Сохранение вакансий в базу данных.
+        Сохранение вакансий в базу данных с проверкой уникальности.
 
         Выполняет валидацию данных и сохраняет/обновляет записи в базе данных.
         Обеспечивает уникальность записей по ссылке на вакансию.

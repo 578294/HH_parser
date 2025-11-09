@@ -1,5 +1,11 @@
-from django.db import models
+"""
+Модуль models.py содержит модели данных для приложения hhparser.
 
+Основная модель:
+- Vacancy: модель для хранения данных о вакансиях с HeadHunter
+  с полями для основной информации, опыта работы, типа занятости и навыков.
+"""
+from django.db import models
 
 class Vacancy(models.Model):
     """
@@ -33,29 +39,30 @@ class Vacancy(models.Model):
     link = models.URLField(verbose_name="Ссылка на вакансию", unique=True, max_length=500)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
-    # Стилизованные поля
-    hp_title = models.CharField(max_length=255, blank=True, verbose_name="Название (HP)")
-    hp_company = models.CharField(max_length=255, blank=True, verbose_name="Компания (HP)")
-    hp_salary = models.CharField(max_length=100, blank=True, verbose_name="Зарплата (HP)")
+    def __str__(self) -> str:
+        """
+        Строковое представление вакансии.
 
-    sp_title = models.CharField(max_length=255, blank=True, verbose_name="Название (SP)")
-    sp_company = models.CharField(max_length=255, blank=True, verbose_name="Компания (SP)")
-    sp_salary = models.CharField(max_length=100, blank=True, verbose_name="Зарплата (SP)")
-
-    wh_title = models.CharField(max_length=255, blank=True, verbose_name="Название (WH)")
-    wh_company = models.CharField(max_length=255, blank=True, verbose_name="Компания (WH)")
-    wh_salary = models.CharField(max_length=100, blank=True, verbose_name="Зарплата (WH)")
-
-    def __str__(self):
+        Returns:
+            str: строка в формате "Название - Компания"
+        """
         return f"{self.title} - {self.company}"
 
-    def save(self, *args, **kwargs):
-        # Очистка ссылки перед сохранением
+    def save(self, *args, **kwargs) -> None:
+        """
+        Переопределенный метод сохранения с очисткой ссылки.
+
+        Args:
+            *args: позиционные аргументы
+            **kwargs: именованные аргументы
+        """
         if self.link:
             self.link = self.link.strip()
         super().save(*args, **kwargs)
 
     class Meta:
+        """Мета-класс для настроек модели Vacancy."""
+
         verbose_name = "Вакансия"
         verbose_name_plural = "Вакансии"
         ordering = ['-created_at']

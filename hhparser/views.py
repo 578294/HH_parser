@@ -1,3 +1,12 @@
+"""
+Модуль views.py содержит представления Django для приложения hhparser.
+
+Основные представления:
+- VacancyListView: отображение и фильтрация списка вакансий
+- ParserView: управление процессом парсинга вакансий
+- API представления: REST endpoints для работы с вакансиями
+"""
+
 from django.shortcuts import render
 from django.views import View
 from django.http import JsonResponse
@@ -13,14 +22,15 @@ import json
 
 class VacancyListView(View):
     """
-    Представление для отображения списка вакансий.
+    Представление для отображения и фильтрации списка вакансий.
 
-    Обеспечивает фильтрацию, поиск и пагинацию вакансий.
-    Поддерживает сложные фильтры по зарплате, опыту и ключевым словам.
+    Поддерживает сложную систему фильтрации по ключевым словам, зарплате,
+    опыту работы и типу занятости с пагинацией результатов.
     """
-    def get(self, request):
+
+    def get(self, request) -> render:
         """
-        Обработка GET-запросов для отображения вакансий.
+        Обработка GET-запросов для отображения отфильтрованных вакансий.
 
         Применяет фильтры из параметров запроса и формирует paginated response.
         Поддерживает поиск по всем текстовым полям и сложные условия фильтрации.
@@ -29,7 +39,7 @@ class VacancyListView(View):
             request: HttpRequest (объект запроса с параметрами фильтрации)
 
         Returns:
-            HttpResponse: отрендеренный шаблон с отфильтрованными вакансиями
+            HttpResponse: отрендеренный шаблон с пагинированными вакансиями
         """
         # Получаем параметры фильтрации
         search_query = request.GET.get('search', '')
@@ -134,7 +144,22 @@ class VacancyListView(View):
 
 
 class IndexView(View):
-    def get(self, request):
+    """
+    Представление для главной страницы приложения.
+
+    Отображает общую статистику и последние добавленные вакансии.
+    """
+
+    def get(self, request) -> render:
+        """
+        Обработка GET-запросов для главной страницы.
+
+        Args:
+            request: HttpRequest (объект запроса)
+
+        Returns:
+            HttpResponse: отрендеренный шаблон главной страницы
+        """
         total_vacancies = Vacancy.objects.count()
         recent_vacancies = Vacancy.objects.all().order_by('-created_at')[:5]
 
@@ -146,24 +171,35 @@ class IndexView(View):
 
 class ParserView(View):
     """
-    Представление для управления процессом парсинга.
+    Представление для управления процессом парсинга вакансий.
 
     Обеспечивает взаимодействие между фронтендом и парсером.
     Поддерживает как form-data, так и JSON запросы.
     """
+
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
+        """Отключает CSRF защиту для API запросов."""
         return super().dispatch(*args, **kwargs)
 
-    def get(self, request):
+    def get(self, request) -> render:
+        """
+        Обработка GET-запросов для страницы парсинга.
+
+        Args:
+            request: HttpRequest (объект запроса)
+
+        Returns:
+            HttpResponse: отрендеренный шаблон страницы парсинга
+        """
         total_vacancies = Vacancy.objects.count()
         return render(request, 'parser/html/parser.html', {
             'total_vacancies': total_vacancies
         })
 
-    def post(self, request):
+    def post(self, request) -> JsonResponse:
         """
-        Обработка запроса на запуск парсинга.
+        Обработка запроса на запуск парсинга вакансий.
 
         Получает параметры парсинга, запускает парсер и применяет фильтры.
         Сохраняет результаты в базу данных и возвращает статистику обработки.
@@ -277,16 +313,27 @@ class ParserView(View):
 
 class FilterVacanciesView(View):
     """
-    Представление для фильтрации вакансий через API.
+    API представление для фильтрации вакансий через JSON API.
 
     Предоставляет REST API для фильтрации вакансий по различным критериям.
     Поддерживает сложную логику сопоставления фильтров с данными вакансий.
     """
+
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
+        """Отключает CSRF защиту для API запросов."""
         return super().dispatch(*args, **kwargs)
 
-    def post(self, request):
+    def post(self, request) -> JsonResponse:
+        """
+        Обработка POST-запросов для фильтрации вакансий через API.
+
+        Args:
+            request: HttpRequest (объект запроса с JSON данными фильтров)
+
+        Returns:
+            JsonResponse: отфильтрованный список вакансий в JSON формате
+        """
         try:
             data = json.loads(request.body)
             filters = data.get('filters', {})
@@ -317,8 +364,16 @@ class FilterVacanciesView(View):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
-    def get_experience_display(self, experience_code):
-        """Отображаемое название для опыта работы"""
+    def get_experience_display(self, experience_code: str) -> str:
+        """
+        Преобразует код опыта работы в читаемое отображение.
+
+        Args:
+            experience_code: str (код опыта работы)
+
+        Returns:
+            str: читаемое название уровня опыта
+        """
         experience_map = {
             'no': 'Нет опыта',
             '1-3': '1-3 года',
@@ -327,8 +382,16 @@ class FilterVacanciesView(View):
         }
         return experience_map.get(experience_code, experience_code)
 
-    def get_employment_display(self, employment_code):
-        """Отображаемое название для типа занятости"""
+    def get_employment_display(self, employment_code: str) -> str:
+        """
+        Преобразует код типа занятости в читаемое отображение.
+
+        Args:
+            employment_code: str (код типа занятости)
+
+        Returns:
+            str: читаемое название типа занятости
+        """
         employment_map = {
             'full': 'Полная занятость',
             'part': 'Частичная занятость',
@@ -337,9 +400,9 @@ class FilterVacanciesView(View):
         }
         return employment_map.get(employment_code, employment_code)
 
-    def matches_filters(self, vacancy, filters):
+    def matches_filters(self, vacancy, filters: dict) -> bool:
         """
-        Проверка соответствия вакансии заданным фильтрам.
+        Проверяет соответствие вакансии заданным фильтрам.
 
         Выполняет комплексную проверку вакансии по всем критериям фильтрации.
         Поддерживает фильтры по зарплате, опыту, занятости и ключевым словам.
@@ -413,8 +476,16 @@ class FilterVacanciesView(View):
 
         return True
 
-    def get_experience_years(self, experience_code):
-        """Конвертирует код опыта в количество лет"""
+    def get_experience_years(self, experience_code: str) -> int:
+        """
+        Конвертирует код опыта в количество лет для численного сравнения.
+
+        Args:
+            experience_code: str (код опыта работы)
+
+        Returns:
+            int: количество лет опыта
+        """
         experience_map = {
             'no': 0,
             '1-3': 2,  # среднее значение
@@ -425,11 +496,27 @@ class FilterVacanciesView(View):
 
 
 class GenerateLetterView(View):
+    """
+    API представление для генерации сопроводительных писем.
+
+    Создает шаблоны сопроводительных писем на основе данных вакансии.
+    """
+
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
+        """Отключает CSRF защиту для API запросов."""
         return super().dispatch(*args, **kwargs)
 
-    def post(self, request):
+    def post(self, request) -> JsonResponse:
+        """
+        Обработка POST-запросов для генерации сопроводительного письма.
+
+        Args:
+            request: HttpRequest (объект запроса с данными вакансии)
+
+        Returns:
+            JsonResponse: сгенерированное письмо в JSON формате
+        """
         try:
             data = json.loads(request.body)
             vacancy_id = data.get('vacancy_id')
@@ -465,7 +552,20 @@ class GenerateLetterView(View):
 
 
 class GetVacanciesView(View):
-    def get(self, request):
+    """
+    API представление для получения списка вакансий в JSON формате.
+    """
+
+    def get(self, request) -> JsonResponse:
+        """
+        Обработка GET-запросов для получения списка вакансий.
+
+        Args:
+            request: HttpRequest (объект запроса)
+
+        Returns:
+            JsonResponse: список вакансий в JSON формате
+        """
         try:
             vacancies = Vacancy.objects.all().order_by('-created_at')[:50]
 
@@ -488,7 +588,23 @@ class GetVacanciesView(View):
 
 
 class StatisticsView(View):
-    def get(self, request):
+    """
+    API представление для получения статистики по вакансиям.
+
+    Предоставляет данные о количестве вакансий, распределении по опыту работы
+    и типам занятости для аналитики и визуализации.
+    """
+
+    def get(self, request) -> JsonResponse:
+        """
+        Обработка GET-запросов для получения статистических данных.
+
+        Args:
+            request: HttpRequest (объект запроса)
+
+        Returns:
+            JsonResponse: JSON с статистикой вакансий
+        """
         try:
             total_vacancies = Vacancy.objects.count()
             recent_count = Vacancy.objects.filter(
