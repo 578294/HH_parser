@@ -6,6 +6,8 @@
 - StyleFilterManager: менеджер конфигураций фильтров
 """
 
+import re
+
 class UniversalVacancyFilter:
     """
     Универсальный фильтр для вакансий.
@@ -119,7 +121,6 @@ class UniversalVacancyFilter:
         salary_text = vacancy.salary
 
         # Извлекаем числа из текста зарплаты
-        import re
         numbers = re.findall(r'\d+', salary_text)
         if numbers:
             # Берем максимальное число из найденных (для диапазонов "100-200")

@@ -18,7 +18,9 @@ from django.core.paginator import Paginator
 from .models import Vacancy
 from DjangoProject_HH_parser.Services.hh_parser import HHApiParser
 import json
+import re
 
+FILTER_URL = '/vacancies/'
 
 class VacancyListView(View):
     """
@@ -291,7 +293,7 @@ class ParserView(View):
             if search_query and search_query != 'Python':
                 filter_params['search'] = search_query
 
-            filter_url = '/vacancies/'
+            filter_url = FILTER_URL
             if filter_params:
                 filter_url += '?' + '&'.join([f"{k}={v}" for k, v in filter_params.items() if v])
 
@@ -438,7 +440,6 @@ class FilterVacanciesView(View):
 
                 if salary_text and "Не указана" not in salary_text:
                     # Извлекаем числа из строки зарплаты
-                    import re
                     numbers = re.findall(r'\d+', salary_text.replace(' ', '').replace(',', ''))
                     if numbers:
                         # Берем максимальное число из найденных (для диапазонов "100-200")
