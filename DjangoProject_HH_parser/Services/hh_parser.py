@@ -13,14 +13,18 @@ import time
 import os
 import django
 import sys
+import re
 from django.utils import timezone
 from hhparser.models import Vacancy
 
+# Настройка Django окружения
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DjangoProject_HH_parser.settings')
 django.setup()
 
+# Константы
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 YaBrowser/25.6.0.0 Safari/537.36"
+BASE_API_URL = "https://api.hh.ru/vacancies"
 
 
 class HHApiParser:
@@ -38,7 +42,7 @@ class HHApiParser:
         Создает сессию requests с пользовательскими заголовками
         для корректной работы с API HH.ru.
         """
-        self.base_url = "https://api.hh.ru/vacancies"
+        self.base_url = BASE_API_URL
         self.session = requests.Session()
         self.session.headers.update({
             'user-agent': USER_AGENT,
@@ -192,7 +196,6 @@ class HHApiParser:
             response.raise_for_status()
             data = response.json()
             description = data.get('description', '')
-            import re
             clean_description = re.sub('<[^<]+?>', '', description)
             return clean_description[:1500]  # Ограничиваем длину
 

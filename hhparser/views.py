@@ -15,152 +15,176 @@ from django.utils.decorators import method_decorator
 from django.db.models import Q
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.urls import reverse
 from .models import Vacancy
 from DjangoProject_HH_parser.Services.hh_parser import HHApiParser
 import json
 import re
 
-FILTER_URL = '/vacancies/'
+# Константы URL
+VACANCIES_URL = '/vacancies/'
+INDEX_URL = '/'
+PARSER_URL = '/parser/'
+API_FILTER_URL = '/api/filter/'
+API_GENERATE_LETTER_URL = '/api/generate-letter/'
+API_GET_VACANCIES_URL = '/api/vacancies/'
+API_STATISTICS_URL = '/api/statistics/'
 
-class VacancyListView(View):
-    """
-    Представление для отображения и фильтрации списка вакансий.
 
-    Поддерживает сложную систему фильтрации по ключевым словам, зарплате,
-    опыту работы и типу занятости с пагинацией результатов.
-    """
+class VacancyFilter:
+    """Класс для фильтрации вакансий"""
 
-    def get(self, request) -> render:
-        """
-        Обработка GET-запросов для отображения отфильтрованных вакансий.
+    def __init__(self, queryset):
+        self.queryset = queryset
 
-        Применяет фильтры из параметров запроса и формирует paginated response.
-        Поддерживает поиск по всем текстовым полям и сложные условия фильтрации.
-
-        Args:
-            request: HttpRequest (объект запроса с параметрами фильтрации)
-
-        Returns:
-            HttpResponse: отрендеренный шаблон с пагинированными вакансиями
-        """
-        # Получаем параметры фильтрации
-        search_query = request.GET.get('search', '')
-        keywords = request.GET.get('keywords', '')
-        min_salary = request.GET.get('min_salary', '')
-        experience = request.GET.get('experience', '')
-        employment = request.GET.get('employment', '')
-        min_experience_years = request.GET.get('min_experience_years', '')
-
-        # Начинаем с всех вакансий
-        vacancies = Vacancy.objects.all().order_by('-created_at')
-
-        # Базовый поиск по всем текстовым полям
+    def apply_search_filter(self, search_query):
+        """Применяет поиск по всем текстовым полям"""
         if search_query:
-            vacancies = vacancies.filter(
+            self.queryset = self.queryset.filter(
                 Q(title__icontains=search_query) |
                 Q(company__icontains=search_query) |
                 Q(skills__icontains=search_query) |
                 Q(description__icontains=search_query)
             )
+        return self
 
-        # Фильтр по ключевым словам
+    def apply_keywords_filter(self, keywords):
+        """Применяет фильтр по ключевым словам"""
         if keywords:
-            vacancies = vacancies.filter(
+            self.queryset = self.queryset.filter(
                 Q(title__icontains=keywords) |
                 Q(company__icontains=keywords) |
                 Q(skills__icontains=keywords) |
                 Q(description__icontains=keywords)
             )
+        return self
 
-        # Фильтр по минимальной зарплате
+    def apply_salary_filter(self, min_salary):
+        """Применяет фильтр по минимальной зарплате"""
         if min_salary:
             try:
                 min_salary_val = int(min_salary)
-                # Ищем вакансии с зарплатой от указанной суммы
                 salary_filter = Q()
                 salary_filter |= Q(salary__icontains=f"от {min_salary_val}")
                 salary_filter |= Q(salary__icontains=f"{min_salary_val} -")
                 salary_filter |= Q(salary__regex=rf'{min_salary_val}')
-                vacancies = vacancies.filter(salary_filter)
+                self.queryset = self.queryset.filter(salary_filter)
             except ValueError:
-                pass  # Если не число, игнорируем фильтр
+                pass
+        return self
 
-        # Фильтр по опыту работы
+    def apply_experience_filter(self, experience):
+        """Применяет фильтр по опыту работы"""
         if experience and experience != '':
-            vacancies = vacancies.filter(experience=experience)
+            self.queryset = self.queryset.filter(experience=experience)
+        return self
 
-        # Фильтр по типу занятости
+    def apply_employment_filter(self, employment):
+        """Применяет фильтр по типу занятости"""
         if employment and employment != '':
-            vacancies = vacancies.filter(employment=employment)
+            self.queryset = self.queryset.filter(employment=employment)
+        return self
 
-        # Фильтр по минимальному количеству лет опыта
+    def apply_min_experience_filter(self, min_experience_years):
+        """Применяет фильтр по минимальному количеству лет опыта"""
         if min_experience_years:
             try:
                 min_years = int(min_experience_years)
-                # Сопоставляем коды опыта с годами
                 experience_map = {
                     'no': 0,
-                    '1-3': 2,  # среднее значение диапазона
-                    '3-6': 4,  # среднее значение диапазона
-                    '6+': 7  # минимальное значение для "более 6 лет"
+                    '1-3': 2,
+                    '3-6': 4,
+                    '6+': 7
                 }
 
-                # Находим подходящие уровни опыта
                 valid_experiences = []
                 for exp_code, years in experience_map.items():
                     if years >= min_years:
                         valid_experiences.append(exp_code)
 
-                # Применяем фильтр
                 if valid_experiences:
-                    vacancies = vacancies.filter(experience__in=valid_experiences)
+                    self.queryset = self.queryset.filter(experience__in=valid_experiences)
             except ValueError:
-                pass  # Если не число, игнорируем фильтр
+                pass
+        return self
 
-        # Проверяем, есть ли активные фильтры
-        has_active_filters = any([
-            keywords,
-            min_salary,
-            experience and experience != '',
-            employment and employment != '',
-            min_experience_years
-        ])
+    def get_queryset(self):
+        """Возвращает отфильтрованный queryset"""
+        return self.queryset
 
-        # ПАГИНАЦИЯ - разбиваем на страницы
-        paginator = Paginator(vacancies, 20)  # 20 вакансий на страницу
+
+class VacancyListView(View):
+    """
+    Представление для отображения и фильтрации списка вакансий.
+    """
+
+    def get(self, request) -> render:
+        """
+        Обработка GET-запросов для отображения отфильтрованных вакансий.
+        """
+        # Получаем параметры фильтрации
+        filter_params = self._get_filter_params(request)
+
+        # Применяем фильтры
+        vacancies = self._apply_filters(filter_params)
+
+        # Пагинация
+        paginator = Paginator(vacancies.order_by('-created_at'), 20)
         page_number = request.GET.get('page', 1)
         page_obj = paginator.get_page(page_number)
 
         return render(request, 'parser/html/vacancies.html', {
-            'vacancies': page_obj,  # Теперь передаем только вакансии текущей страницы
-            'page_obj': page_obj,  # Объект пагинации для навигации
-            'search_query': search_query,
-            'keywords': keywords,
-            'min_salary': min_salary,
-            'experience': experience,
-            'employment': employment,
-            'min_experience_years': min_experience_years,
-            'vacancies_count': vacancies.count(),  # Общее количество после фильтрации
-            'has_active_filters': has_active_filters
+            'vacancies': page_obj,
+            'page_obj': page_obj,
+            'vacancies_count': vacancies.count(),
+            'has_active_filters': self._has_active_filters(filter_params),
+            **filter_params
         })
+
+    def _get_filter_params(self, request) -> dict:
+        """Извлекает параметры фильтрации из запроса"""
+        return {
+            'search_query': request.GET.get('search', ''),
+            'keywords': request.GET.get('keywords', ''),
+            'min_salary': request.GET.get('min_salary', ''),
+            'experience': request.GET.get('experience', ''),
+            'employment': request.GET.get('employment', ''),
+            'min_experience_years': request.GET.get('min_experience_years', ''),
+        }
+
+    def _apply_filters(self, filter_params: dict):
+        """Применяет все фильтры к queryset"""
+        filter_instance = VacancyFilter(Vacancy.objects.all())
+
+        filter_instance \
+            .apply_search_filter(filter_params['search_query']) \
+            .apply_keywords_filter(filter_params['keywords']) \
+            .apply_salary_filter(filter_params['min_salary']) \
+            .apply_experience_filter(filter_params['experience']) \
+            .apply_employment_filter(filter_params['employment']) \
+            .apply_min_experience_filter(filter_params['min_experience_years'])
+
+        return filter_instance.get_queryset()
+
+    def _has_active_filters(self, filter_params: dict) -> bool:
+        """Проверяет наличие активных фильтров"""
+        return any([
+            filter_params['keywords'],
+            filter_params['min_salary'],
+            filter_params['experience'] and filter_params['experience'] != '',
+            filter_params['employment'] and filter_params['employment'] != '',
+            filter_params['min_experience_years']
+        ])
 
 
 class IndexView(View):
     """
     Представление для главной страницы приложения.
-
-    Отображает общую статистику и последние добавленные вакансии.
     """
 
     def get(self, request) -> render:
         """
         Обработка GET-запросов для главной страницы.
-
-        Args:
-            request: HttpRequest (объект запроса)
-
-        Returns:
-            HttpResponse: отрендеренный шаблон главной страницы
         """
         total_vacancies = Vacancy.objects.count()
         recent_vacancies = Vacancy.objects.all().order_by('-created_at')[:5]
@@ -174,9 +198,6 @@ class IndexView(View):
 class ParserView(View):
     """
     Представление для управления процессом парсинга вакансий.
-
-    Обеспечивает взаимодействие между фронтендом и парсером.
-    Поддерживает как form-data, так и JSON запросы.
     """
 
     @method_decorator(csrf_exempt)
@@ -187,12 +208,6 @@ class ParserView(View):
     def get(self, request) -> render:
         """
         Обработка GET-запросов для страницы парсинга.
-
-        Args:
-            request: HttpRequest (объект запроса)
-
-        Returns:
-            HttpResponse: отрендеренный шаблон страницы парсинга
         """
         total_vacancies = Vacancy.objects.count()
         return render(request, 'parser/html/parser.html', {
@@ -202,123 +217,146 @@ class ParserView(View):
     def post(self, request) -> JsonResponse:
         """
         Обработка запроса на запуск парсинга вакансий.
-
-        Получает параметры парсинга, запускает парсер и применяет фильтры.
-        Сохраняет результаты в базу данных и возвращает статистику обработки.
-
-        Args:
-            request: HttpRequest (объект запроса с параметрами парсинга)
-
-        Returns:
-            JsonResponse: результат операции со статистикой и ссылкой на результаты
         """
         try:
-            if request.content_type == 'application/json':
-                data = json.loads(request.body)
-                search_query = data.get('query', 'Python')
-                vacancy_count = int(data.get('vacancy_count', 50))
-                filters = {
+            # Извлекаем данные
+            data = self._extract_request_data(request)
+
+            # Парсим вакансии
+            vacancies_data = self._parse_vacancies(data['search_query'], data['vacancy_count'])
+            if not vacancies_data:
+                return JsonResponse({'success': False, 'error': 'Не удалось получить данные'})
+
+            # Применяем фильтры
+            filtered_data = self._apply_user_filters(vacancies_data, data['filters'])
+
+            # Сохраняем в БД
+            processed_count = self._save_to_database(filtered_data)
+
+            # Формируем ответ
+            return self._build_success_response(filtered_data, processed_count, data['filters'], data['search_query'])
+
+        except Exception as e:
+            return self._handle_error(e)
+
+    def _extract_request_data(self, request) -> dict:
+        """Извлекает данные из запроса"""
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            return {
+                'search_query': data.get('query', 'Python'),
+                'vacancy_count': int(data.get('vacancy_count', 50)),
+                'filters': {
                     'keywords': data.get('keywords', ''),
                     'min_salary': data.get('min_salary', ''),
                     'experience': data.get('experience', ''),
                     'min_experience_years': data.get('min_experience_years', ''),
                     'employment': data.get('employment', ''),
                 }
-            else:
-                search_query = request.POST.get('query', 'Python')
-                vacancy_count = int(request.POST.get('vacancy_count', 50))
-                filters = {
+            }
+        else:
+            return {
+                'search_query': request.POST.get('query', 'Python'),
+                'vacancy_count': int(request.POST.get('vacancy_count', 50)),
+                'filters': {
                     'keywords': request.POST.get('keywords', ''),
                     'min_salary': request.POST.get('min_salary', ''),
                     'experience': request.POST.get('experience', ''),
                     'min_experience_years': request.POST.get('min_experience_years', ''),
                     'employment': request.POST.get('employment', ''),
                 }
+            }
 
-            parser = HHApiParser()
-            vacancies_data = parser.parse_vacancies(search_query, vacancy_count)
+    def _parse_vacancies(self, search_query: str, vacancy_count: int) -> list:
+        """Парсит вакансии через API"""
+        parser = HHApiParser()
+        vacancies_data = parser.parse_vacancies(search_query, vacancy_count)
 
-            if not vacancies_data:
-                return JsonResponse({'success': False, 'error': 'Не удалось получить данные'})
-
+        if vacancies_data:
+            vacancies_data = [v for v in vacancies_data if v is not None]
             print(f"📥 Получено вакансий от API: {len(vacancies_data)}")
 
-            # Фильтруем None значения
-            vacancies_data = [v for v in vacancies_data if v is not None]
-            print(f"📊 После фильтрации None: {len(vacancies_data)} вакансий")
+        return vacancies_data
 
-            # Применяем пользовательские фильтры
-            filtered_vacancies = []
-            has_active_filters = any(filters.values())
+    def _apply_user_filters(self, vacancies_data: list, filters: dict) -> list:
+        """Применяет пользовательские фильтры"""
+        if not any(filters.values()):
+            return vacancies_data
 
-            if has_active_filters:
-                filter_view = FilterVacanciesView()
+        filter_view = FilterVacanciesView()
+        filtered_vacancies = []
 
-                for vacancy in vacancies_data:
-                    class TempVacancy:
-                        def __init__(self, data):
-                            self.title = data.get('title', '')
-                            self.company = data.get('company', '')
-                            self.salary = data.get('salary', '')
-                            self.description = data.get('description', '')
-                            self.experience = data.get('experience', '')
-                            self.employment = data.get('employment', '')
-                            self.skills = data.get('skills', '')
-                            self.link = data.get('link', '')
+        for vacancy in vacancies_data:
+            temp_vacancy = self._create_temp_vacancy(vacancy)
+            if filter_view.matches_filters(temp_vacancy, filters):
+                filtered_vacancies.append(vacancy)
 
-                    temp_vacancy = TempVacancy(vacancy)
-                    if filter_view.matches_filters(temp_vacancy, filters):
-                        filtered_vacancies.append(vacancy)
+        print(f"🎯 После пользовательских фильтров: {len(filtered_vacancies)} вакансий")
+        return filtered_vacancies
 
-                vacancies_data = filtered_vacancies
-                print(f"🎯 После пользовательских фильтров: {len(vacancies_data)} вакансий")
+    def _create_temp_vacancy(self, vacancy_data: dict):
+        """Создает временный объект вакансии для фильтрации"""
+        class TempVacancy:
+            def __init__(self, data):
+                self.title = data.get('title', '')
+                self.company = data.get('company', '')
+                self.salary = data.get('salary', '')
+                self.description = data.get('description', '')
+                self.experience = data.get('experience', '')
+                self.employment = data.get('employment', '')
+                self.skills = data.get('skills', '')
+                self.link = data.get('link', '')
 
-            # Сохраняем в базу
-            processed_count = parser.save_to_database(vacancies_data)
+        return TempVacancy(vacancy_data)
 
-            # Формируем URL для просмотра отфильтрованных вакансий
-            filter_params = {}
-            if filters.get('keywords'):
-                filter_params['keywords'] = filters['keywords']
-            if filters.get('min_salary'):
-                filter_params['min_salary'] = filters['min_salary']
-            if filters.get('experience'):
-                filter_params['experience'] = filters['experience']
-            if filters.get('employment'):
-                filter_params['employment'] = filters['employment']
-            if filters.get('min_experience_years'):
-                filter_params['min_experience_years'] = filters['min_experience_years']
+    def _save_to_database(self, vacancies_data: list) -> int:
+        """Сохраняет вакансии в базу данных"""
+        parser = HHApiParser()
+        return parser.save_to_database(vacancies_data)
 
-            # Добавляем поисковый запрос как параметр
-            if search_query and search_query != 'Python':
-                filter_params['search'] = search_query
+    def _build_success_response(self, vacancies_data: list, processed_count: int,
+                               filters: dict, search_query: str) -> JsonResponse:
+        """Формирует успешный JSON ответ"""
+        filter_url = self._build_filter_url(filters, search_query)
+        has_active_filters = any(filters.values())
 
-            filter_url = FILTER_URL
-            if filter_params:
-                filter_url += '?' + '&'.join([f"{k}={v}" for k, v in filter_params.items() if v])
+        return JsonResponse({
+            'success': True,
+            'found': len(vacancies_data),
+            'saved': processed_count,
+            'message': f'Найдено {len(vacancies_data)} вакансий, обработано {processed_count}',
+            'filter_url': filter_url,
+            'has_filters': has_active_filters and len(vacancies_data) > 0
+        })
 
-            return JsonResponse({
-                'success': True,
-                'found': len(vacancies_data),
-                'saved': processed_count,
-                'message': f'Найдено {len(vacancies_data)} вакансий, обработано {processed_count}',
-                'filter_url': filter_url,
-                'has_filters': has_active_filters and len(vacancies_data) > 0
-            })
+    def _build_filter_url(self, filters: dict, search_query: str) -> str:
+        """Строит URL для фильтрации"""
+        filter_params = {}
 
-        except Exception as e:
-            print(f"Ошибка в ParserView: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return JsonResponse({'success': False, 'error': f'Ошибка: {str(e)}'})
+        for key in ['keywords', 'min_salary', 'experience', 'employment', 'min_experience_years']:
+            if filters.get(key):
+                filter_params[key] = filters[key]
+
+        if search_query and search_query != 'Python':
+            filter_params['search'] = search_query
+
+        filter_url = VACANCIES_URL
+        if filter_params:
+            filter_url += '?' + '&'.join([f"{k}={v}" for k, v in filter_params.items() if v])
+
+        return filter_url
+
+    def _handle_error(self, error: Exception) -> JsonResponse:
+        """Обрабатывает ошибки"""
+        print(f"Ошибка в ParserView: {str(error)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': f'Ошибка: {str(error)}'})
 
 
 class FilterVacanciesView(View):
     """
     API представление для фильтрации вакансий через JSON API.
-
-    Предоставляет REST API для фильтрации вакансий по различным критериям.
-    Поддерживает сложную логику сопоставления фильтров с данными вакансий.
     """
 
     @method_decorator(csrf_exempt)
@@ -329,12 +367,6 @@ class FilterVacanciesView(View):
     def post(self, request) -> JsonResponse:
         """
         Обработка POST-запросов для фильтрации вакансий через API.
-
-        Args:
-            request: HttpRequest (объект запроса с JSON данными фильтров)
-
-        Returns:
-            JsonResponse: отфильтрованный список вакансий в JSON формате
         """
         try:
             data = json.loads(request.body)
@@ -369,12 +401,6 @@ class FilterVacanciesView(View):
     def get_experience_display(self, experience_code: str) -> str:
         """
         Преобразует код опыта работы в читаемое отображение.
-
-        Args:
-            experience_code: str (код опыта работы)
-
-        Returns:
-            str: читаемое название уровня опыта
         """
         experience_map = {
             'no': 'Нет опыта',
@@ -387,12 +413,6 @@ class FilterVacanciesView(View):
     def get_employment_display(self, employment_code: str) -> str:
         """
         Преобразует код типа занятости в читаемое отображение.
-
-        Args:
-            employment_code: str (код типа занятости)
-
-        Returns:
-            str: читаемое название типа занятости
         """
         employment_map = {
             'full': 'Полная занятость',
@@ -405,16 +425,6 @@ class FilterVacanciesView(View):
     def matches_filters(self, vacancy, filters: dict) -> bool:
         """
         Проверяет соответствие вакансии заданным фильтрам.
-
-        Выполняет комплексную проверку вакансии по всем критериям фильтрации.
-        Поддерживает фильтры по зарплате, опыту, занятости и ключевым словам.
-
-        Args:
-            vacancy: Vacancy (объект вакансии для проверки)
-            filters: dict (словарь с параметрами фильтрации)
-
-        Returns:
-            bool: True если вакансия соответствует всем фильтрам, иначе False
         """
         # Фильтр по ключевым словам
         if filters.get('keywords'):
@@ -427,7 +437,6 @@ class FilterVacanciesView(View):
                     getattr(vacancy, 'skills', '').lower()
                 ]
 
-                # Проверяем наличие ключевых слов в любом из полей
                 keyword_found = any(keywords in field for field in search_fields if field)
                 if not keyword_found:
                     return False
@@ -439,15 +448,12 @@ class FilterVacanciesView(View):
                 salary_text = getattr(vacancy, 'salary', '')
 
                 if salary_text and "Не указана" not in salary_text:
-                    # Извлекаем числа из строки зарплаты
                     numbers = re.findall(r'\d+', salary_text.replace(' ', '').replace(',', ''))
                     if numbers:
-                        # Берем максимальное число из найденных (для диапазонов "100-200")
                         salary_value = max(map(int, numbers))
                         if salary_value < min_salary:
                             return False
             except (ValueError, TypeError):
-                # Если преобразование не удалось, пропускаем фильтр
                 pass
 
         # Фильтр по опыту работы
@@ -462,7 +468,7 @@ class FilterVacanciesView(View):
             if vacancy_employment != filters['employment']:
                 return False
 
-        # Новый фильтр: минимальное количество лет опыта
+        # Фильтр по минимальному количеству лет опыта
         if filters.get('min_experience_years'):
             try:
                 min_years = int(filters['min_experience_years'])
@@ -472,7 +478,6 @@ class FilterVacanciesView(View):
                 if experience_years < min_years:
                     return False
             except (ValueError, TypeError):
-                # Если преобразование не удалось, пропускаем фильтр
                 pass
 
         return True
@@ -480,18 +485,12 @@ class FilterVacanciesView(View):
     def get_experience_years(self, experience_code: str) -> int:
         """
         Конвертирует код опыта в количество лет для численного сравнения.
-
-        Args:
-            experience_code: str (код опыта работы)
-
-        Returns:
-            int: количество лет опыта
         """
         experience_map = {
             'no': 0,
-            '1-3': 2,  # среднее значение
-            '3-6': 4,  # среднее значение
-            '6+': 7  # минимальное значение для "более 6 лет"
+            '1-3': 2,
+            '3-6': 4,
+            '6+': 7
         }
         return experience_map.get(experience_code, 0)
 
@@ -499,8 +498,6 @@ class FilterVacanciesView(View):
 class GenerateLetterView(View):
     """
     API представление для генерации сопроводительных писем.
-
-    Создает шаблоны сопроводительных писем на основе данных вакансии.
     """
 
     @method_decorator(csrf_exempt)
@@ -511,12 +508,6 @@ class GenerateLetterView(View):
     def post(self, request) -> JsonResponse:
         """
         Обработка POST-запросов для генерации сопроводительного письма.
-
-        Args:
-            request: HttpRequest (объект запроса с данными вакансии)
-
-        Returns:
-            JsonResponse: сгенерированное письмо в JSON формате
         """
         try:
             data = json.loads(request.body)
@@ -526,7 +517,6 @@ class GenerateLetterView(View):
 
             vacancy = Vacancy.objects.get(id=vacancy_id)
 
-            # Простой генератор писем
             letter_content = f"""Уважаемые представители компании {vacancy.company}!
 
 Я пишу в ответ на вакансию "{vacancy.title}", размещенную на HH.ru.
@@ -560,12 +550,6 @@ class GetVacanciesView(View):
     def get(self, request) -> JsonResponse:
         """
         Обработка GET-запросов для получения списка вакансий.
-
-        Args:
-            request: HttpRequest (объект запроса)
-
-        Returns:
-            JsonResponse: список вакансий в JSON формате
         """
         try:
             vacancies = Vacancy.objects.all().order_by('-created_at')[:50]
@@ -591,20 +575,11 @@ class GetVacanciesView(View):
 class StatisticsView(View):
     """
     API представление для получения статистики по вакансиям.
-
-    Предоставляет данные о количестве вакансий, распределении по опыту работы
-    и типам занятости для аналитики и визуализации.
     """
 
     def get(self, request) -> JsonResponse:
         """
         Обработка GET-запросов для получения статистических данных.
-
-        Args:
-            request: HttpRequest (объект запроса)
-
-        Returns:
-            JsonResponse: JSON с статистикой вакансий
         """
         try:
             total_vacancies = Vacancy.objects.count()
@@ -612,7 +587,6 @@ class StatisticsView(View):
                 created_at__gte=timezone.now() - timezone.timedelta(days=7)
             ).count()
 
-            # Статистика по опыту работы
             experience_stats = {
                 'no': Vacancy.objects.filter(experience='no').count(),
                 '1-3': Vacancy.objects.filter(experience='1-3').count(),
@@ -620,7 +594,6 @@ class StatisticsView(View):
                 '6+': Vacancy.objects.filter(experience='6+').count(),
             }
 
-            # Статистика по типу занятости
             employment_stats = {
                 'full': Vacancy.objects.filter(employment='full').count(),
                 'part': Vacancy.objects.filter(employment='part').count(),
